@@ -1,0 +1,8 @@
+{
+  "name": "SAFA Operator Panel",
+  "description": "PC-based operator control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

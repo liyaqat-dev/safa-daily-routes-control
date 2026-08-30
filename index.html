@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SAFA - Operator Control Panel</title>
+    <meta name="description" content="PC-based operator control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
+    
+    <!-- Open Graph & SEO -->
+    <meta property="og:title" content="SAFA - Operator Control Panel" />
+    <meta property="og:description" content="PC-based operator control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
+    <meta property="og:type" content="website" />
+    
+    <!-- PWA Manifest & App Icons -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    
+    <!-- PWA & Mobile Web Capabilities -->
+    <meta name="theme-color" content="#090e1a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="SAFA Panel">
+    <meta name="application-name" content="SAFA Panel">
+    <meta name="msapplication-TileColor" content="#090e1a">
+    <meta name="format-detection" content="telephone=no">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            height: 100vh;
+            width: 100vw;
+            background-color: #090e1a;
+            color: #f8fafc;
+            overflow: hidden; /* we will handle scroll inside */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding: 1rem 1.5rem;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .brand-section { display: flex; align-items: center; gap: 1rem; }
+        .brand-logo {
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            color: #38bdf8;
+            text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        .brand-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #94a3b8;
+            text-transform: uppercase;
+            border-left: 2px solid #334155;
+            padding-left: 1rem;
+        }
+
+        .clock-display {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .status-badge {
+            display: flex; align-items: center; gap: 0.5rem;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #cbd5e1;
+        }
+        .live-dot {
+            height: 0.5rem; width: 0.5rem;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #22c55e;
+            animation: pulse-green 2s infinite;
+        }
+        .live-dot.offline {
+            background-color: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+            animation: none;
+        }
+        @keyframes pulse-green {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        /* Table */
+        .table-wrapper {
+            flex: 1;
+            overflow: auto;
+            border: 1px solid #334155;
+            border-radius: 0.75rem;
+            background-color: #0f172a;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            position: relative;
+        }
+        table { border-collapse: separate; border-spacing: 0; min-width: 100%; }
+        
+        /* Sticky Header */
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #1e293b;
+            z-index: 10;
+            font-size: 0.85rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            padding: 0.75rem;
+            border-bottom: 2px solid #334155;
+            border-right: 1px solid #334155;
+        }
+
+        /* Sticky Left Column (Name) */
+        th.sticky-col, td.sticky-col {
+            position: sticky;
+            left: 0;
+            background-color: #0f172a;
+            z-index: 5;
+            border-right: 2px solid #334155;
+        }
+        
+        /* The top-left corner must have highest z-index to stay on top of both scrolls */
+        th.sticky-col {
+            z-index: 15;
+            background-color: #1e293b;
+        }
+
+        /* Hover effects shouldn't break sticky bg */
+        tr:hover td.sticky-col {
+            background-color: #1e293b;
+        }
+        tr:hover td:not(.sticky-col) {
+            background-color: #1e293b;
+        }
+
+        .day-group-1 { background: linear-gradient(180deg, #1e293b 0%, #172554 100%); color: #60a5fa; }
+        .day-group-2 { background: linear-gradient(180deg, #1e293b 0%, #1e1b4b 100%); color: #a78bfa; }
+        .day-group-3 { background: linear-gradient(180deg, #1e293b 0%, #042f2e 100%); color: #2dd4bf; }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #090e1a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        
+        /* Input overrides */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Top Navigation -->
+        <div class="top-bar">
+            <div class="brand-section">
+                <div class="brand-logo">SAFA</div>
+                <div class="brand-title">Operator Panel</div>
+                <div class="status-badge ml-4">
+                    <span class="live-dot" id="connection-dot"></span>
+                    <span id="connection-status">Connecting...</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <!-- Broadcast Status -->
+                <div id="broadcast-status" class="flex items-center gap-2 px-3 py-1.5 rounded-full border border-green-500/50 bg-green-500/10 text-green-400 text-sm font-bold shadow-inner">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    </span>
+                    Live: Default View
+                </div>
+
+                <!-- Columns Control -->
+                <div class="flex items-center gap-2 bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-lg shadow-inner">
+                    <label class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Days:</label>
+                    <select id="days-selector" class="bg-transparent text-white font-bold outline-none cursor-pointer" onchange="changeDays(this.value)">
+                        <option value="1" class="bg-slate-900">1 Day</option>
+                        <option value="3" class="bg-slate-900">3 Days</option>
+                        <option value="5" class="bg-slate-900">5 Days</option>
+                        <option value="7" class="bg-slate-900">7 Days</option>
+                    </select>
+                </div>
+                
+                <!-- PWA Install Button (Dynamic) -->
+                <button id="btn-pwa-install" onclick="triggerPwaInstall()" class="hidden flex items-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg shadow-sky-900/40 transition-all border border-sky-400/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    Install App
+                </button>
+
+                <!-- Reset Filters Button -->
+                <button id="btn-clear-filters" onclick="clearFilters()" class="hidden flex items-center gap-2 bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded-lg font-bold transition-colors border border-slate-600 shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                    Reset Display
+                </button>
+
+                <!-- Filter Button -->
+                <button onclick="openFilterModal()" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg font-bold shadow-lg shadow-blue-900/50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filters
+                </button>
+
+                <div class="clock-display pl-4 border-l border-slate-700" id="live-clock">00:00:00</div>
+            </div>
+        </div>
+
+        <!-- Editable Grid -->
+        <div class="table-wrapper relative">
+            <table id="schedule-table">
+                <thead id="table-head">
+                    <!-- Dynamic Headers Injected Here -->
+                </thead>
+                <tbody id="schedule-body">
+                    <!-- Dynamic Rows Injected Here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Bottom Controls -->
+        <div class="mt-4 flex justify-between items-center flex-shrink-0">
+            <button onclick="addOperator()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded border border-slate-600 transition shadow">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                </svg>
+                Add Operator Row
+            </button>
+            <div id="save-indicator" class="text-sm text-green-400 opacity-0 transition-opacity font-medium">
+                Changes saved to database.
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Operator Modal -->
+    <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[400px] shadow-2xl p-6 transform transition-all">
+            <h2 class="text-xl font-bold text-white mb-4">Add Operator</h2>
+            <input type="text" id="new-operator-name" placeholder="Enter operator name..." class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 mb-6">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeAddModal()" class="px-4 py-2 rounded text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">Cancel</button>
+                <button onclick="confirmAddOperator()" class="px-5 py-2 rounded text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/40 transition">Add Operator</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove Operator Modal -->
+    <div id="remove-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[400px] shadow-2xl p-6 transform transition-all">
+            <h2 class="text-xl font-bold text-red-500 mb-2">Remove Operator</h2>
+            <p id="remove-modal-text" class="text-slate-300 text-sm mb-6">Are you sure you want to remove this operator from the view?</p>
+            <div class="flex justify-end gap-3">
+                <button onclick="closeRemoveModal()" class="px-4 py-2 rounded text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">Cancel</button>
+                <button onclick="confirmRemoveOperator()" class="px-5 py-2 rounded text-sm font-bold bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-900/40 transition">Remove</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div id="filter-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[450px] shadow-2xl p-6 transform transition-all">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Advanced Filter
+                </h2>
+                <button onclick="closeFilterModal()" class="text-slate-400 hover:text-white transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="flex flex-col gap-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Operator Name</label>
+                    <input type="text" id="filter-name" placeholder="Search by name..." class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Route / Location</label>
+                    <input type="text" id="filter-route" placeholder="Search by route..." class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Task Type</label>
+                        <select id="filter-type" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                            <option value="">All Types</option>
+                            <option value="ORDER">ORDER</option>
+                            <option value="SUPPLY">SUPPLY</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-1">Date</label>
+                        <input type="date" id="filter-date" class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:outline-none focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-end gap-3">
+                <button onclick="clearFilters()" class="px-4 py-2 rounded text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">Clear</button>
+                <button onclick="applyFilters()" class="px-5 py-2 rounded text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-900/40 transition">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Core State ---
+        let allRecords = []; // Flat list from safa_daily_routes
+        let operatorNames = []; // Unique list of operators in UI (to persist empty rows)
+        let displayDays = 3;
+        let activeFilters = { name: '', route: '', type: '', date: '' };
+        
+        // --- Supabase Config ---
+        const SUPABASE_URL = 'https://yhtgycnynpinnopbsyhk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlodGd5Y255bnBpbm5vcGJzeWhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDQ3OTgsImV4cCI6MjEwMzU4MDc5OH0.JPZQ849JWqTiw07VvZEvMXJJHHPLQimSvLalEhS9nro';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- Clock & Date Utils ---
+        setInterval(() => {
+            document.getElementById('live-clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            // Optionally: check if day rolled over and auto-refresh dates
+        }, 1000);
+
+        function getDayOfWeek(dateString) {
+            if (!dateString) return '--';
+            const [y, m, d] = dateString.split('-');
+            const dateObj = new Date(y, m - 1, d);
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            return days[dateObj.getDay()];
+        }
+
+        // Generate the display columns based on rolling window or filter
+        function getDisplayDates() {
+            if (activeFilters.date) {
+                return [activeFilters.date]; // Show only specific date if filtered
+            }
+            const dates = [];
+            const today = new Date();
+            for (let i = 0; i < displayDays; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                dates.push(d.toISOString().split('T')[0]);
+            }
+            return dates;
+        }
+
+        // Format date to D/M/YYYY
+        function formatHeaderDate(dateString) {
+            const [y, m, d] = dateString.split('-');
+            return `${parseInt(d)}/${parseInt(m)}/${y} ${getDayOfWeek(dateString)}`;
+        }
+
+        // --- Sync Config to Supabase for TV Display ---
+        async function syncDisplayConfig() {
+            const isFiltered = !!(activeFilters.name || activeFilters.route || activeFilters.type || activeFilters.date);
+            
+            await supabaseClient.from('display_config').upsert({
+                id: 1,
+                is_filtered: isFiltered,
+                name_filter: activeFilters.name,
+                route_filter: activeFilters.route,
+                type_filter: activeFilters.type,
+                date_filter: activeFilters.date,
+                display_days: displayDays,
+                updated_at: new Date().toISOString()
+            });
+
+            updateBroadcastStatusUI(isFiltered);
+        }
+
+        function updateBroadcastStatusUI(isFiltered) {
+            const badge = document.getElementById('broadcast-status');
+            const clearBtn = document.getElementById('btn-clear-filters');
+            if (!badge || !clearBtn) return;
+            
+            if (isFiltered) {
+                badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full border border-orange-500/50 bg-orange-500/10 text-orange-400 text-sm font-bold shadow-inner";
+                badge.innerHTML = `<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span></span> Live: Filtered View`;
+                clearBtn.classList.remove('hidden');
+            } else {
+                badge.className = "flex items-center gap-2 px-3 py-1.5 rounded-full border border-green-500/50 bg-green-500/10 text-green-400 text-sm font-bold shadow-inner";
+                badge.innerHTML = `<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span></span> Live: Default View`;
+                clearBtn.classList.add('hidden');
+            }
+        }
+
+        async function fetchConfig() {
+            const { data } = await supabaseClient.from('display_config').select('*').eq('id', 1).single();
+            if (data) {
+                displayDays = data.display_days || 3;
+                activeFilters = { 
+                    name: data.name_filter || '', 
+                    route: data.route_filter || '', 
+                    type: data.type_filter || '', 
+                    date: data.date_filter || '' 
+                };
+                
+                document.getElementById('days-selector').value = displayDays;
+                document.getElementById('filter-name').value = activeFilters.name;
+                document.getElementById('filter-route').value = activeFilters.route;
+                document.getElementById('filter-type').value = activeFilters.type;
+                document.getElementById('filter-date').value = activeFilters.date;
+                
+                updateBroadcastStatusUI(data.is_filtered);
+            }
+        }
+
+        // --- Data Fetching & Realtime ---
+        async function fetchSchedule() {
+            await fetchConfig();
+            const { data, error } = await supabaseClient.from('safa_daily_routes').select('*').order('person_name', { ascending: true });
+            if (error) {
+                console.error('Fetch error:', error);
+                document.getElementById('connection-status').textContent = 'Error Fetching';
+                document.getElementById('connection-dot').classList.add('offline');
+                return;
+            }
+            allRecords = data || [];
+            
+            // Extract unique operator names from records (if not already in UI)
+            const dbNames = [...new Set(allRecords.map(r => r.person_name))];
+            operatorNames = [...new Set([...operatorNames, ...dbNames])].sort();
+
+            renderGrid();
+            
+            document.getElementById('connection-status').textContent = 'Live (Realtime)';
+            document.getElementById('connection-dot').classList.remove('offline');
+        }
+
+        supabaseClient.channel('safa-operator')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'safa_daily_routes' }, (payload) => {
+                fetchSchedule();
+            })
+            .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_config' }, (payload) => {
+                fetchConfig().then(renderGrid);
+            })
+            .subscribe((status) => {
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                    document.getElementById('connection-status').textContent = 'Disconnected';
+                    document.getElementById('connection-dot').classList.add('offline');
+                }
+            });
+
+        // --- UI Rendering ---
+        function changeDays(val) {
+            displayDays = parseInt(val, 10);
+            activeFilters.date = ''; // Clear specific date filter if they manually change rolling days
+            document.getElementById('filter-date').value = '';
+            renderGrid();
+            syncDisplayConfig();
+        }
+
+        function renderGrid() {
+            const displayDates = getDisplayDates();
+
+            // Render Headers
+            const thead = document.getElementById('table-head');
+            let headHTML = `<tr><th class="text-left w-64 sticky-col">OPERATOR NAME</th>`;
+            
+            displayDates.forEach((dateStr, i) => {
+                const groupClass = `day-group-${(i % 3) + 1}`;
+                headHTML += `<th class="border-slate-700 min-w-[200px] text-center ${groupClass}">${formatHeaderDate(dateStr)}</th>`;
+            });
+            headHTML += `</tr>`;
+            thead.innerHTML = headHTML;
+
+            // Apply Filters to determine which names to show
+            let filteredNames = operatorNames;
+            if (activeFilters.name) {
+                filteredNames = filteredNames.filter(name => name.toLowerCase().includes(activeFilters.name));
+            }
+            
+            if (activeFilters.route || activeFilters.type) {
+                // To filter by route/type, we need to check if this person has ANY record matching the criteria within the displayDates
+                filteredNames = filteredNames.filter(name => {
+                    return displayDates.some(date => {
+                        const rec = allRecords.find(r => r.person_name === name && r.route_date === date);
+                        if (!rec) return false;
+                        let mRoute = !activeFilters.route || (rec.route || '').toLowerCase().includes(activeFilters.route);
+                        let mType = !activeFilters.type || rec.type === activeFilters.type;
+                        return mRoute && mType;
+                    });
+                });
+            }
+
+            // Render Body
+            const tbody = document.getElementById('schedule-body');
+            tbody.innerHTML = '';
+            
+            if(filteredNames.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="${displayDates.length + 1}" class="p-8 text-center text-slate-500 font-medium bg-slate-900/50">No schedule records found matching the criteria.</td></tr>`;
+                return;
+            }
+
+            filteredNames.forEach((name, rowIndex) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-800 hover:bg-slate-800/40 transition-colors";
+                
+                // Name Column (Sticky)
+                let html = `<td class="p-3 sticky-col align-middle shadow-lg">
+                    <div class="flex items-center gap-2">
+                        <input type="text" value="${name}" placeholder="Operator Name" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                               onchange="updateOperatorName('${name}', this.value)">
+                        <button onclick="removeOperatorUI('${name}')" title="Remove row from view" class="text-slate-600 hover:text-red-500 transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                </td>`;
+                
+                // Day Columns (Scrollable)
+                displayDates.forEach((dateStr) => {
+                    const rec = allRecords.find(r => r.person_name === name && r.route_date === dateStr) || { route: '', type: '' };
+                    
+                    let selectStyles = "bg-slate-900 border-slate-700 text-slate-400";
+                    if (rec.type === 'ORDER') selectStyles = "bg-sky-900/20 border-sky-500/50 text-sky-400";
+                    if (rec.type === 'SUPPLY') selectStyles = "bg-green-900/20 border-green-500/50 text-green-400";
+
+                    // Use unique IDs for the selects/inputs to grab them easily if needed, but we pass values in onchange
+                    html += `<td class="p-3 border-r border-slate-700/50 align-top">
+                        <div class="flex flex-col gap-2">
+                            <input type="text" value="${rec.route || ''}" id="route-${name.replace(/\s+/g,'')}-${dateStr}" placeholder="Route..." 
+                                   class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm text-white uppercase font-semibold focus:border-blue-500 focus:outline-none transition"
+                                   onchange="upsertCell('${name}', '${dateStr}')">
+                            
+                            <select id="type-${name.replace(/\s+/g,'')}-${dateStr}" class="w-full border rounded px-2 py-2 text-xs font-bold focus:outline-none transition ${selectStyles}"
+                                    onchange="upsertCell('${name}', '${dateStr}')">
+                                <option value="" ${!rec.type ? 'selected' : ''}>-- TYPE --</option>
+                                <option value="ORDER" ${rec.type === 'ORDER' ? 'selected' : ''}>ORDER</option>
+                                <option value="SUPPLY" ${rec.type === 'SUPPLY' ? 'selected' : ''}>SUPPLY</option>
+                            </select>
+                        </div>
+                    </td>`;
+                });
+                
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Smart Upsert / Delete Logic ---
+        
+        async function upsertCell(personName, routeDate) {
+            showSaveIndicator();
+            
+            const routeInput = document.getElementById(`route-${personName.replace(/\s+/g,'')}-${routeDate}`);
+            const typeSelect = document.getElementById(`type-${personName.replace(/\s+/g,'')}-${routeDate}`);
+            
+            // Clean up inputs
+            const routeVal = routeInput.value ? routeInput.value.trim().toUpperCase() : null;
+            const typeVal = typeSelect.value ? typeSelect.value : null;
+
+            // If both are empty, delete the record
+            if (!routeVal && !typeVal) {
+                const { error } = await supabaseClient.from('safa_daily_routes')
+                    .delete()
+                    .match({ person_name: personName, route_date: routeDate });
+                if (error) console.error("Error deleting:", error);
+            } else {
+                // Upsert record
+                const payload = {
+                    person_name: personName,
+                    route_date: routeDate,
+                    route: routeVal,
+                    type: typeVal
+                };
+                
+                const { error } = await supabaseClient.from('safa_daily_routes')
+                    .upsert(payload, { onConflict: 'person_name, route_date' });
+                if (error) console.error("Error upserting:", error);
+            }
+            
+            // Let the realtime subscription trigger the fetchSchedule/renderGrid, 
+            // but we can update colors optimistically if needed. Realtime is fast enough usually.
+        }
+
+        // Rename an operator across all their records
+        async function updateOperatorName(oldName, newName) {
+            newName = newName.trim();
+            if (!newName || oldName === newName) return;
+            
+            showSaveIndicator();
+            const { error } = await supabaseClient.from('safa_daily_routes')
+                .update({ person_name: newName })
+                .eq('person_name', oldName);
+                
+            if (!error) {
+                operatorNames = operatorNames.map(n => n === oldName ? newName : n);
+                renderGrid();
+            }
+        }
+
+        function addOperator() {
+            document.getElementById('new-operator-name').value = '';
+            document.getElementById('add-modal').classList.remove('hidden');
+            setTimeout(() => document.getElementById('new-operator-name').focus(), 100);
+        }
+
+        document.getElementById('new-operator-name').addEventListener('keyup', function(event) {
+            if (event.key === 'Enter') {
+                confirmAddOperator();
+            }
+        });
+
+        function closeAddModal() {
+            document.getElementById('add-modal').classList.add('hidden');
+        }
+
+        function confirmAddOperator() {
+            let newName = document.getElementById('new-operator-name').value.trim();
+            if (newName && !operatorNames.includes(newName)) {
+                operatorNames.push(newName);
+                
+                // Clear name filter if it would hide the new operator
+                if (activeFilters.name && !newName.toLowerCase().includes(activeFilters.name)) {
+                    activeFilters.name = '';
+                    document.getElementById('filter-name').value = '';
+                    syncDisplayConfig();
+                }
+                
+                operatorNames.sort();
+                renderGrid();
+            }
+            closeAddModal();
+        }
+
+        let operatorToRemove = null;
+
+        function removeOperatorUI(name) {
+            operatorToRemove = name;
+            document.getElementById('remove-modal-text').innerText = `Remove ${name} from this view? (This will not delete their historical database records).`;
+            document.getElementById('remove-modal').classList.remove('hidden');
+        }
+
+        function closeRemoveModal() {
+            document.getElementById('remove-modal').classList.add('hidden');
+            operatorToRemove = null;
+        }
+
+        function confirmRemoveOperator() {
+            if (operatorToRemove) {
+                operatorNames = operatorNames.filter(n => n !== operatorToRemove);
+                renderGrid();
+            }
+            closeRemoveModal();
+        }
+
+        function showSaveIndicator() {
+            const ind = document.getElementById('save-indicator');
+            ind.style.opacity = '1';
+            clearTimeout(window.saveIndTimer);
+            window.saveIndTimer = setTimeout(() => { ind.style.opacity = '0'; }, 2000);
+        }
+
+        // --- Filters Modal Logic ---
+        const modal = document.getElementById('filter-modal');
+        function openFilterModal() { 
+            modal.classList.remove('hidden'); 
+        }
+        function closeFilterModal() { 
+            modal.classList.add('hidden'); 
+        }
+        function applyFilters() {
+            activeFilters.name = document.getElementById('filter-name').value.toLowerCase();
+            activeFilters.route = document.getElementById('filter-route').value.toLowerCase();
+            activeFilters.type = document.getElementById('filter-type').value;
+            activeFilters.date = document.getElementById('filter-date').value;
+            renderGrid();
+            syncDisplayConfig();
+            closeFilterModal();
+        }
+        function clearFilters() {
+            document.getElementById('filter-name').value = '';
+            document.getElementById('filter-route').value = '';
+            document.getElementById('filter-type').value = '';
+            document.getElementById('filter-date').value = '';
+            activeFilters = { name: '', route: '', type: '', date: '' };
+            renderGrid();
+            syncDisplayConfig();
+            closeFilterModal();
+        }
+
+        // Boot
+        fetchSchedule();
+
+        // --- PWA & Service Worker Integration ---
+        let deferredInstallPrompt = null;
+        const installBtn = document.getElementById('btn-pwa-install');
+        const offlineToast = document.getElementById('offline-toast');
+        const updateToast = document.getElementById('update-toast');
+
+        // Check standalone / installed mode
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        if (isStandalone) {
+            console.log('[PWA] Running in standalone mode');
+        }
+
+        // Capture browser install prompt
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            if (installBtn && !isStandalone) {
+                installBtn.classList.remove('hidden');
+            }
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA] Application successfully installed');
+            deferredInstallPrompt = null;
+            if (installBtn) installBtn.classList.add('hidden');
+        });
+
+        async function triggerPwaInstall() {
+            if (!deferredInstallPrompt) {
+                // Fallback for browsers where install prompt isn't directly triggered
+                alert('To install this app, tap your browser menu (or share icon) and select "Add to Home Screen" or "Install App".');
+                return;
+            }
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            console.log(`[PWA] Install prompt outcome: ${outcome}`);
+            deferredInstallPrompt = null;
+            if (installBtn) installBtn.classList.add('hidden');
+        }
+
+        // Online / Offline Detection
+        function updateNetworkStatus() {
+            const isOnline = navigator.onLine;
+            const dot = document.getElementById('connection-dot');
+            const status = document.getElementById('connection-status');
+            
+            if (!isOnline) {
+                if (dot) dot.classList.add('offline');
+                if (status) status.textContent = 'Offline (Cached)';
+                if (offlineToast) offlineToast.classList.remove('hidden');
+            } else {
+                if (offlineToast) offlineToast.classList.add('hidden');
+                if (status && status.textContent.includes('Offline')) {
+                    status.textContent = 'Reconnecting...';
+                    fetchSchedule();
+                }
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        updateNetworkStatus();
+
+        // Register Service Worker
+        let swRegistration = null;
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then((reg) => {
+                        swRegistration = reg;
+                        console.log('[PWA ServiceWorker] Registered successfully with scope:', reg.scope);
+
+                        // Check for service worker updates
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            if (newWorker) {
+                                newWorker.addEventListener('statechange', () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        // New version available!
+                                        if (updateToast) updateToast.classList.remove('hidden');
+                                    }
+                                });
+                            }
+                        });
+                    })
+                    .catch((err) => {
+                        console.warn('[PWA ServiceWorker] Registration failed:', err);
+                    });
+            });
+        }
+
+        function reloadPwaUpdate() {
+            if (swRegistration && swRegistration.waiting) {
+                swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            window.location.reload();
+        }
+    </script>
+
+    <!-- Offline Notification Toast -->
+    <div id="offline-toast" class="hidden fixed bottom-5 right-5 z-50 bg-amber-950/90 border border-amber-600/70 text-amber-200 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 backdrop-blur-md text-sm font-medium animate-bounce">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829m-2.829 2.829L3 21m2.828-12.728a5 5 0 017.072 0m0 0l-2.829 2.829" />
+        </svg>
+        <span>Offline Mode: Working with cached records.</span>
+    </div>
+
+    <!-- Update Available Notification Toast -->
+    <div id="update-toast" class="hidden fixed bottom-5 left-5 z-50 bg-slate-900/95 border border-sky-500 text-slate-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-4 backdrop-blur-md text-sm font-medium">
+        <div class="flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-sky-400 animate-ping"></span>
+            <span>New app version available!</span>
+        </div>
+        <button onclick="reloadPwaUpdate()" class="px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg shadow transition">Update Now</button>
+    </div>
+</body>
+</html>
