@@ -689,9 +689,79 @@
             }
         };
 
+        let catalogsLoadedFromDatabase = false;
+        let catalogSyncInProgress = false;
+
         function saveCatalogs() {
             localStorage.setItem('safa_custom_staff', JSON.stringify(customStaffCatalog));
             localStorage.setItem('safa_custom_routes', JSON.stringify(customRoutesCatalog));
+            updateDrawerStats();
+            if (catalogsLoadedFromDatabase) void syncCatalogsToDatabase();
+        }
+
+        async function syncCatalogsToDatabase() {
+            if (!catalogsLoadedFromDatabase || catalogSyncInProgress) return;
+            catalogSyncInProgress = true;
+            try {
+                for (const [itemType, names] of [
+                    ['staff', customStaffCatalog],
+                    ['route', customRoutesCatalog]
+                ]) {
+                    const { data: existing, error: readError } = await supabaseClient
+                        .from('daily_route_database').select('id,name').eq('item_type', itemType);
+                    if (readError) throw readError;
+
+                    const wanted = [...new Set(names.map(n => String(n).trim()).filter(Boolean))];
+                    const wantedLower = new Set(wanted.map(n => n.toLowerCase()));
+                    const staleIds = (existing || [])
+                        .filter(row => !wantedLower.has(row.name.toLowerCase()))
+                        .map(row => row.id);
+
+                    if (staleIds.length) {
+                        const { error } = await supabaseClient
+                            .from('daily_route_database').delete().in('id', staleIds);
+                        if (error) throw error;
+                    }
+
+                    const existingLower = new Set((existing || []).map(row => row.name.toLowerCase()));
+                    const missing = wanted
+                        .filter(name => !existingLower.has(name.toLowerCase()))
+                        .map(name => ({ item_type: itemType, name }));
+
+                    if (missing.length) {
+                        const { error } = await supabaseClient.from('daily_route_database').insert(missing);
+                        if (error) throw error;
+                    }
+                }
+            } catch (error) {
+                console.error('Catalog sync failed:', error);
+                showSaveIndicator('Catalog sync failed. Check database permissions.');
+            } finally {
+                catalogSyncInProgress = false;
+            }
+        }
+
+        async function loadCatalogsFromDatabase() {
+            const { data, error } = await supabaseClient
+                .from('daily_route_database').select('item_type,name').order('name');
+
+            if (error) {
+                console.error('Could not load staff/routes catalog:', error);
+                catalogsLoadedFromDatabase = true;
+                return;
+            }
+
+            if (data && data.length) {
+                customStaffCatalog = [...new Set(data.filter(row => row.item_type === 'staff').map(row => row.name))];
+                customRoutesCatalog = [...new Set(data.filter(row => row.item_type === 'route').map(row => row.name))];
+            }
+
+            localStorage.setItem('safa_custom_staff', JSON.stringify(customStaffCatalog));
+            localStorage.setItem('safa_custom_routes', JSON.stringify(customRoutesCatalog));
+            catalogsLoadedFromDatabase = true;
+
+            // Preserve any existing local catalog entries by migrating them when the shared table is empty.
+            if (!data || data.length === 0) await syncCatalogsToDatabase();
             updateDrawerStats();
         }
 
@@ -925,6 +995,16 @@
             })
             .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'display_config' }, (payload) => {
                 fetchConfig().then(renderGrid);
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'daily_route_database' }, () => {
+                if (!catalogSyncInProgress) {
+                    loadCatalogsFromDatabase().then(() => {
+                        operatorNames = [...new Set([...operatorNames, ...customStaffCatalog])].filter(Boolean).sort();
+                        renderGrid();
+                        renderDbStaffList();
+                        renderDbRoutesList();
+                    });
+                }
             })
             .subscribe((status) => {
                 if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
@@ -2217,8 +2297,8 @@
             closeFilterModal();
         }
 
-        // Boot
-        fetchSchedule();
+        // Boot: load the shared staff/route catalog before rendering the schedule.
+        loadCatalogsFromDatabase().finally(() => fetchSchedule());
 
         // --- PWA & Service Worker Integration ---
         let deferredInstallPrompt = null;
