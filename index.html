@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>SAFA - Operator Control Panel</title>
-    <meta name="description" content="PC-based operator control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
+    <title>SAFA - Staff Schedule & Route Panel</title>
+    <meta name="description" content="PC-based staff control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
     
     <!-- Open Graph & SEO -->
-    <meta property="og:title" content="SAFA - Operator Control Panel" />
-    <meta property="og:description" content="PC-based operator control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
+    <meta property="og:title" content="SAFA - Staff Schedule & Route Panel" />
+    <meta property="og:description" content="PC-based staff control panel for managing dynamic SAFA schedules. Features live sync, inline editing, and advanced filtering." />
     <meta property="og:type" content="website" />
     
     <!-- PWA Manifest & App Icons -->
@@ -24,8 +24,8 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="SAFA Panel">
-    <meta name="application-name" content="SAFA Panel">
+    <meta name="apple-mobile-web-app-title" content="SAFA Staff Panel">
+    <meta name="application-name" content="SAFA Staff Panel">
     <meta name="msapplication-TileColor" content="#090e1a">
     <meta name="format-detection" content="telephone=no">
 
@@ -38,7 +38,7 @@
             width: 100vw;
             background-color: #090e1a;
             color: #f8fafc;
-            overflow: hidden; /* we will handle scroll inside */
+            overflow: hidden; /* we handle table scroll inside */
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
         }
@@ -61,7 +61,7 @@
             flex-shrink: 0;
         }
 
-        .brand-section { display: flex; align-items: center; gap: 1rem; }
+        .brand-section { display: flex; align-items: center; gap: 0.85rem; }
         .brand-logo {
             font-size: 2rem;
             font-weight: 900;
@@ -70,16 +70,17 @@
             text-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
         }
         .brand-title {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: #94a3b8;
             text-transform: uppercase;
             border-left: 2px solid #334155;
-            padding-left: 1rem;
+            padding-left: 0.85rem;
+            letter-spacing: 0.04em;
         }
 
         .clock-display {
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: 700;
             color: #f1f5f9;
             font-variant-numeric: tabular-nums;
@@ -91,7 +92,7 @@
             border: 1px solid #334155;
             padding: 0.25rem 0.75rem;
             border-radius: 9999px;
-            font-size: 0.875rem;
+            font-size: 0.85rem;
             font-weight: 600;
             color: #cbd5e1;
         }
@@ -138,7 +139,7 @@
             border-right: 1px solid #334155;
         }
 
-        /* Sticky Left Column (Name) */
+        /* Sticky Left Column (Staff Name) */
         th.sticky-col, td.sticky-col {
             position: sticky;
             left: 0;
@@ -153,7 +154,7 @@
             background-color: #1e293b;
         }
 
-        /* Hover effects shouldn't break sticky bg */
+        /* Hover effects */
         tr:hover td.sticky-col {
             background-color: #1e293b;
         }
@@ -183,9 +184,15 @@
         <!-- Top Navigation -->
         <div class="top-bar">
             <div class="brand-section">
+                <!-- Hamburger Menu Button -->
+                <button type="button" onclick="toggleSideMenu(true)" id="btn-side-menu-toggle" aria-label="Open Side Menu" class="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center justify-center shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
                 <div class="brand-logo">SAFA</div>
-                <div class="brand-title">Operator Panel</div>
-                <div class="status-badge ml-4">
+                <div class="brand-title">Staff Schedule Panel</div>
+                <div class="status-badge ml-2">
                     <span class="live-dot" id="connection-dot"></span>
                     <span id="connection-status">Connecting...</span>
                 </div>
@@ -201,6 +208,7 @@
                     Live: Default View
                 </div>
                 
+
                 <!-- PWA Install Button (Dynamic) -->
                 <button id="btn-pwa-install" onclick="triggerPwaInstall()" class="hidden flex items-center gap-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-bold shadow-lg shadow-sky-900/40 transition-all border border-sky-400/30">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -241,35 +249,243 @@
         </div>
         
         <!-- Bottom Controls -->
-        <div class="mt-4 flex justify-between items-center flex-shrink-0">
-            <button onclick="addOperator()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-2 rounded border border-slate-600 transition shadow">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
-                </svg>
-                Add Operator Row
-            </button>
+        <div class="mt-3 flex justify-end items-center flex-shrink-0">
             <div id="save-indicator" class="text-sm text-green-400 opacity-0 transition-opacity font-medium">
                 Changes saved to database.
             </div>
         </div>
+
     </div>
 
-    <!-- Add Operator Modal -->
-    <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-[400px] shadow-2xl p-6 transform transition-all">
-            <h2 class="text-xl font-bold text-white mb-4">Add Operator</h2>
-            <input type="text" id="new-operator-name" placeholder="Enter or select operator name..." autocomplete="off"
-                   data-dropdown="operator"
-                   onclick="triggerDropdown(this, 'operator')" onfocus="triggerDropdown(this, 'operator')"
-                   class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 mb-6">
-            <div class="flex justify-end gap-3">
-                <button onclick="closeAddModal()" class="px-4 py-2 rounded text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">Cancel</button>
-                <button onclick="confirmAddOperator()" class="px-5 py-2 rounded text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/40 transition">Add Operator</button>
+    <!-- Side Navigation Menu Drawer -->
+    <div id="side-menu-drawer" class="fixed inset-0 z-50 pointer-events-none transition-all duration-300">
+        <!-- Backdrop -->
+        <div id="side-menu-backdrop" onclick="toggleSideMenu(false)" class="absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300"></div>
+        
+        <!-- Drawer Panel -->
+        <div id="side-menu-panel" class="absolute top-0 bottom-0 left-0 w-80 max-w-[85vw] bg-slate-900 border-r border-slate-800 shadow-2xl flex flex-col -translate-x-full transition-transform duration-300 pointer-events-auto z-10">
+            <!-- Drawer Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-500 flex items-center justify-center font-black text-white text-lg tracking-wider shadow-lg shadow-sky-900/40">
+                        S
+                    </div>
+                    <div>
+                        <h3 class="font-extrabold text-white text-base tracking-wide">SAFA PANEL</h3>
+                        <p class="text-[11px] text-slate-400 font-medium">Staff & Operations Management</p>
+                    </div>
+                </div>
+                <button onclick="toggleSideMenu(false)" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Drawer Links -->
+            <div class="p-4 flex-1 flex flex-col gap-2 overflow-y-auto">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1">Navigation</div>
+                
+                <button onclick="navigateFromDrawer('schedule')" class="flex items-center gap-3 w-full px-3.5 py-3 rounded-xl text-sm font-semibold bg-blue-600/15 text-blue-400 border border-blue-500/30 hover:bg-blue-600/25 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Schedule Board</span>
+                </button>
+
+                <button onclick="navigateFromDrawer('database')" class="flex items-center gap-3 w-full px-3.5 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 border border-transparent hover:border-slate-700 transition group">
+                    <div class="p-1 rounded-lg bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                        </svg>
+                    </div>
+                    <div class="flex-1 text-left">
+                        <div class="font-bold">Edit Database</div>
+                        <div class="text-[11px] text-slate-400">Manage staff names & routes</div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500 group-hover:text-slate-300 transition-transform group-hover:translate-x-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+                
+                <div class="mt-4 pt-4 border-t border-slate-800">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-3 py-1">Quick Actions</div>
+                    <button onclick="navigateFromDrawer('add-staff')" class="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        <span>+ Add New Staff</span>
+                    </button>
+                    <button onclick="navigateFromDrawer('filter')" class="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                        </svg>
+                        <span>Filter & Display Dates</span>
+                    </button>
+                </div>
+
+                <!-- Live Summary Card -->
+                <div class="mt-auto bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5 flex flex-col gap-2.5">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Database Summary</span>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Total Staff</span>
+                        <span id="drawer-stat-staff" class="font-bold text-sky-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Unique Routes</span>
+                        <span id="drawer-stat-routes" class="font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <span class="text-slate-400">Total Records</span>
+                        <span id="drawer-stat-records" class="font-bold text-purple-400">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-3 border-t border-slate-800 text-[11px] text-slate-500 text-center">
+                SAFA Operations System • Realtime Sync
             </div>
         </div>
     </div>
 
-    <!-- Remove / Delete Operator Modal -->
+    <!-- Edit Database Modal -->
+    <div id="edit-database-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white tracking-wide">Edit Database</h2>
+                        <p class="text-xs text-slate-400">Add, edit, or remove staff names and routes across all schedules</p>
+                    </div>
+                </div>
+                <button onclick="closeEditDatabaseModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Tabs: Staff Names vs Routes -->
+            <div class="px-5 pt-3 pb-2 border-b border-slate-800 flex items-center gap-3 bg-slate-900">
+                <button type="button" id="tab-btn-staff" onclick="switchDbTab('staff')" class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-blue-600 text-white shadow-md shadow-blue-900/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>Staff Names</span>
+                    <span id="tab-badge-staff" class="text-xs px-1.5 py-0.2 rounded-full bg-blue-950 text-blue-200">0</span>
+                </button>
+                <button type="button" id="tab-btn-routes" onclick="switchDbTab('routes')" class="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>Routes</span>
+                    <span id="tab-badge-routes" class="text-xs px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300">0</span>
+                </button>
+            </div>
+
+            <!-- Tab Content Panel -->
+            <div class="p-5 flex-1 overflow-y-auto flex flex-col gap-4">
+                <!-- Staff Tab View -->
+                <div id="db-view-staff" class="flex flex-col gap-4">
+                    <!-- Add Staff Input Card -->
+                    <div class="bg-slate-800/50 border border-slate-700/70 rounded-xl p-3 flex gap-2 items-center">
+                        <input type="text" id="db-new-staff-input" placeholder="Type new staff name..." autocomplete="off"
+                               class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                        <button type="button" onclick="handleAddStaffFromDb()" class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white font-bold text-sm shadow transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Staff
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Staff -->
+                    <div class="flex items-center justify-between">
+                        <div class="relative flex-1 mr-3">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input type="text" id="db-search-staff" oninput="renderDbStaffList()" placeholder="Filter staff list..."
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                        <span class="text-xs text-slate-400 font-semibold" id="db-staff-count-label">0 staff members</span>
+                    </div>
+
+                    <!-- Staff List -->
+                    <div id="db-staff-items" class="flex flex-col gap-2">
+                        <!-- Injected via renderDbStaffList() -->
+                    </div>
+                </div>
+
+                <!-- Routes Tab View -->
+                <div id="db-view-routes" class="hidden flex flex-col gap-4">
+                    <!-- Add Route Input Card -->
+                    <div class="bg-slate-800/50 border border-slate-700/70 rounded-xl p-3 flex gap-2 items-center">
+                        <input type="text" id="db-new-route-input" placeholder="Type new route name (e.g. CALICUT 1)..." autocomplete="off"
+                               class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm uppercase placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                        <button type="button" onclick="handleAddRouteFromDb()" class="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow transition">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd" />
+                            </svg>
+                            Add Route
+                        </button>
+                    </div>
+
+                    <!-- Search & Filter Routes -->
+                    <div class="flex items-center justify-between">
+                        <div class="relative flex-1 mr-3">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </span>
+                            <input type="text" id="db-search-routes" oninput="renderDbRoutesList()" placeholder="Filter routes..."
+                                   class="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition">
+                        </div>
+                        <span class="text-xs text-slate-400 font-semibold" id="db-routes-count-label">0 routes</span>
+                    </div>
+
+                    <!-- Routes List -->
+                    <div id="db-route-items" class="flex flex-col gap-2">
+                        <!-- Injected via renderDbRoutesList() -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/60 flex justify-between items-center text-xs text-slate-400">
+                <span>Renaming automatically updates all associated schedule assignments in database.</span>
+                <button type="button" onclick="closeEditDatabaseModal()" class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-bold transition">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Staff Modal (Quick Add Row) -->
+    <div id="add-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl p-6 transform transition-all">
+            <h2 class="text-xl font-bold text-white mb-2">Add Staff Member</h2>
+            <p class="text-xs text-slate-400 mb-4">Add a new staff member to the schedule board</p>
+            <input type="text" id="new-operator-name" placeholder="Enter or select staff name..." autocomplete="off"
+                   data-dropdown="staff"
+                   onclick="triggerDropdown(this, 'staff')" onfocus="triggerDropdown(this, 'staff')"
+                   class="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 mb-6">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeAddModal()" class="px-4 py-2 rounded text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 transition">Cancel</button>
+                <button onclick="confirmAddOperator()" class="px-5 py-2 rounded text-sm font-bold bg-green-600 hover:bg-green-500 text-white shadow-lg shadow-green-900/40 transition">Add Staff</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Remove / Delete Staff Modal -->
     <div id="remove-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
         <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-md shadow-2xl p-6 transform transition-all animate-in fade-in zoom-in-95 duration-150">
             <div class="flex items-center gap-3.5 mb-4">
@@ -279,12 +495,12 @@
                     </svg>
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold text-white">Delete Operator Row</h2>
+                    <h2 class="text-lg font-bold text-white">Delete Staff Member</h2>
                     <p class="text-xs text-red-400 font-medium">Please confirm deletion</p>
                 </div>
             </div>
             <p id="remove-modal-text" class="text-slate-300 text-sm mb-6 leading-relaxed">
-                Are you sure you want to permanently delete the operator row for <span id="remove-operator-target" class="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">Operator</span>? All associated route records for this operator will be deleted.
+                Are you sure you want to permanently delete the schedule row for <span id="remove-operator-target" class="font-bold text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700">Staff</span>? All associated route records for this staff member will be deleted.
             </p>
             <div class="flex justify-end gap-3">
                 <button type="button" onclick="closeRemoveModal()" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/60 transition">Cancel</button>
@@ -292,15 +508,26 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
-                    Delete Row
+                    Delete Staff
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Themed Floating Dropdown (for unique Operators and Routes with zero repetition) -->
+    <!-- Themed Floating Autocomplete Dropdown (Staff & Routes) -->
     <div id="themed-autocomplete-dropdown" class="fixed hidden z-[9999] bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden py-1 max-h-60 overflow-y-auto ring-1 ring-white/10 text-sm transition-all">
         <div id="themed-dropdown-list" class="flex flex-col"></div>
+    </div>
+
+    <!-- Themed Floating Task Type Selector Dropdown -->
+    <div id="themed-type-dropdown" class="fixed hidden z-[9999] bg-slate-900/95 backdrop-blur-md border border-slate-700/90 rounded-xl shadow-2xl overflow-hidden py-1 ring-1 ring-white/10 text-xs w-48 transition-all">
+        <div class="px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-950/70 border-b border-slate-800 flex justify-between items-center">
+            <span>Select Task Type</span>
+            <span class="text-[9px] text-slate-500">themed</span>
+        </div>
+        <div id="themed-type-options" class="p-1 flex flex-col gap-1">
+            <!-- Injected dynamically based on cell vs filter mode -->
+        </div>
     </div>
 
     <!-- Filter Modal -->
@@ -315,7 +542,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-bold text-white tracking-wide">Filter Schedule & Days</h2>
-                        <p class="text-xs text-slate-400">Configure date range (From - To), rolling days, and filters</p>
+                        <p class="text-xs text-slate-400">Configure date range (From - To), rolling days, and staff filters</p>
                     </div>
                 </div>
                 <button onclick="closeFilterModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition">
@@ -335,10 +562,13 @@
                             </svg>
                             Date Selection (From - To)
                         </span>
-                        <span id="range-summary-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-600/40">3 Days (Rolling)</span>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="clearDateRange()" title="Clear dates" class="text-[11px] font-semibold px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">Clear Dates</button>
+                            <span id="range-summary-badge" class="text-xs font-bold px-2 py-0.5 rounded bg-sky-950/70 text-sky-300 border border-sky-600/40">3 Days (Rolling)</span>
+                        </div>
                     </div>
 
-                    <!-- Date Range: From - To -->
+                    <!-- Date Range: From - To (Presets removed per request) -->
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">From Date</label>
@@ -350,17 +580,7 @@
                         </div>
                     </div>
 
-                    <!-- Quick Range Presets -->
-                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span class="text-[11px] font-semibold text-slate-400 mr-1">Presets:</span>
-                        <button type="button" onclick="setQuickDateRange('today')" class="text-xs font-medium px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:text-white transition">Today</button>
-                        <button type="button" onclick="setQuickDateRange('tomorrow')" class="text-xs font-medium px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:text-white transition">Tomorrow</button>
-                        <button type="button" onclick="setQuickDateRange('next3')" class="text-xs font-medium px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:text-white transition">Next 3 Days</button>
-                        <button type="button" onclick="setQuickDateRange('next7')" class="text-xs font-medium px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 hover:text-white transition">Next 7 Days</button>
-                        <button type="button" onclick="clearDateRange()" class="text-xs font-medium px-2 py-1 rounded bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/40 ml-auto transition">Clear Dates</button>
-                    </div>
-
-                    <!-- Rolling Days Selector (Moved from top bar) -->
+                    <!-- Rolling Days Selector -->
                     <div class="pt-3 border-t border-slate-700/60 mt-1">
                         <div class="flex items-center justify-between mb-2">
                             <label class="text-xs font-semibold text-slate-300">Days to Display (Rolling View)</label>
@@ -376,7 +596,7 @@
                     </div>
                 </div>
 
-                <!-- Section 2: Operator & Route Filtering -->
+                <!-- Section 2: Staff & Route Filtering -->
                 <div class="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4 flex flex-col gap-3">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -386,9 +606,9 @@
                     </span>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Operator Name</label>
-                        <input type="text" id="filter-name" placeholder="Click to select or type operator name..." autocomplete="off" 
-                               onclick="triggerDropdown(this, 'operator')" onfocus="triggerDropdown(this, 'operator')"
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Staff Name</label>
+                        <input type="text" id="filter-name" placeholder="Click to select or type staff name..." autocomplete="off" 
+                               onclick="triggerDropdown(this, 'staff')" onfocus="triggerDropdown(this, 'staff')"
                                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 text-sm">
                     </div>
 
@@ -401,13 +621,18 @@
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-300 mb-1">Task Type</label>
-                            <select id="filter-type" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500">
-                                <option value="">All Types</option>
-                                <option value="ORDER">ORDER</option>
-                                <option value="SUPPLY">SUPPLY</option>
-                                <option value="MARKETING">MARKETING</option>
-                                <option value="LEAVE">LEAVE</option>
-                            </select>
+                            <!-- Themed Custom Type Selector for Filter Modal -->
+                            <button type="button" id="filter-type-btn" onclick="openThemedFilterTypeDropdown(this)"
+                                    class="w-full flex items-center justify-between px-3 py-2 rounded-lg border border-slate-700 bg-slate-900 text-white text-sm font-semibold hover:border-slate-600 transition">
+                                <span id="filter-type-label" class="flex items-center gap-2 truncate">
+                                    <span class="h-2 w-2 rounded-full bg-slate-500"></span>
+                                    <span>All Types</span>
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <input type="hidden" id="filter-type" value="">
                         </div>
                     </div>
                 </div>
@@ -426,10 +651,50 @@
     <script>
         // --- Core State ---
         let allRecords = []; // Flat list from safa_daily_routes
-        let operatorNames = []; // Unique list of operators in UI (to persist empty rows)
+        let operatorNames = []; // Unique list of staff in UI (to persist empty rows)
+        let customStaffCatalog = JSON.parse(localStorage.getItem('safa_custom_staff') || '[]');
+        let customRoutesCatalog = JSON.parse(localStorage.getItem('safa_custom_routes') || '[]');
         let displayDays = 3;
         let activeFilters = { name: '', route: '', type: '', dateFrom: '', dateTo: '' };
         
+        // --- Task Type Theming Specs ---
+        const TASK_TYPES = {
+            ORDER: {
+                label: 'ORDER',
+                category: 'Sales Order',
+                badgeClass: 'bg-sky-950/70 border-sky-500/70 text-sky-300 hover:bg-sky-900/80 hover:border-sky-400',
+                dotClass: 'bg-sky-400 shadow-[0_0_8px_rgba(56,189,248,0.7)]',
+                tagClass: 'bg-sky-950 border border-sky-800 text-sky-300'
+            },
+            SUPPLY: {
+                label: 'SUPPLY',
+                category: 'Delivery',
+                badgeClass: 'bg-emerald-950/70 border-emerald-500/70 text-emerald-300 hover:bg-emerald-900/80 hover:border-emerald-400',
+                dotClass: 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]',
+                tagClass: 'bg-emerald-950 border border-emerald-800 text-emerald-300'
+            },
+            MARKETING: {
+                label: 'MARKETING',
+                category: 'Promotion',
+                badgeClass: 'bg-purple-950/70 border-purple-500/70 text-purple-300 hover:bg-purple-900/80 hover:border-purple-400',
+                dotClass: 'bg-purple-400 shadow-[0_0_8px_rgba(192,132,252,0.7)]',
+                tagClass: 'bg-purple-950 border border-purple-800 text-purple-300'
+            },
+            LEAVE: {
+                label: 'LEAVE',
+                category: 'On Leave',
+                badgeClass: 'bg-amber-950/70 border-amber-500/70 text-amber-300 hover:bg-amber-900/80 hover:border-amber-400',
+                dotClass: 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.7)]',
+                tagClass: 'bg-amber-950 border border-amber-800 text-amber-300'
+            }
+        };
+
+        function saveCatalogs() {
+            localStorage.setItem('safa_custom_staff', JSON.stringify(customStaffCatalog));
+            localStorage.setItem('safa_custom_routes', JSON.stringify(customRoutesCatalog));
+            updateDrawerStats();
+        }
+
         // --- Supabase Config ---
         const SUPABASE_URL = 'https://yhtgycnynpinnopbsyhk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlodGd5Y255bnBpbm5vcGJzeWhrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgwMDQ3OTgsImV4cCI6MjEwMzU4MDc5OH0.JPZQ849JWqTiw07VvZEvMXJJHHPLQimSvLalEhS9nro';
@@ -624,6 +889,7 @@
                 if (document.getElementById('filter-date-from')) document.getElementById('filter-date-from').value = activeFilters.dateFrom;
                 if (document.getElementById('filter-date-to')) document.getElementById('filter-date-to').value = activeFilters.dateTo;
                 
+                updateFilterTypeBtnUI(activeFilters.type);
                 selectRollingDays(displayDays, false);
                 onDateRangeChange();
                 updateBroadcastStatusUI(data.is_filtered);
@@ -642,17 +908,18 @@
             }
             allRecords = data || [];
             
-            // Extract unique operator names from records (if not already in UI)
+            // Extract unique staff names from records + custom catalog
             const dbNames = [...new Set(allRecords.map(r => r.person_name))];
-            operatorNames = [...new Set([...operatorNames, ...dbNames])].sort();
+            operatorNames = [...new Set([...operatorNames, ...customStaffCatalog, ...dbNames])].filter(Boolean).sort();
 
             renderGrid();
+            updateDrawerStats();
             
             document.getElementById('connection-status').textContent = 'Live (Realtime)';
             document.getElementById('connection-dot').classList.remove('offline');
         }
 
-        supabaseClient.channel('safa-operator')
+        supabaseClient.channel('safa-staff-panel')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'safa_daily_routes' }, (payload) => {
                 fetchSchedule();
             })
@@ -676,7 +943,7 @@
 
             // Render Headers
             const thead = document.getElementById('table-head');
-            let headHTML = `<tr><th class="text-left w-64 sticky-col">OPERATOR NAME</th>`;
+            let headHTML = `<tr><th class="text-left w-64 sticky-col">STAFF NAME</th>`;
             
             displayDates.forEach((dateStr, i) => {
                 const groupClass = `day-group-${(i % 3) + 1}`;
@@ -685,14 +952,13 @@
             headHTML += `</tr>`;
             thead.innerHTML = headHTML;
 
-            // Apply Filters to determine which names to show
+            // Apply Filters to determine which staff to show
             let filteredNames = operatorNames;
             if (activeFilters.name) {
                 filteredNames = filteredNames.filter(name => name.toLowerCase().includes(activeFilters.name));
             }
             
             if (activeFilters.route || activeFilters.type) {
-                // To filter by route/type, check if this person has ANY record matching the criteria within displayDates
                 filteredNames = filteredNames.filter(name => {
                     return displayDates.some(date => {
                         const rec = allRecords.find(r => r.person_name === name && r.route_date === date);
@@ -713,53 +979,54 @@
                 return;
             }
 
-            filteredNames.forEach((name, rowIndex) => {
+            filteredNames.forEach((name) => {
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-slate-800 hover:bg-slate-800/40 transition-colors";
                 
                 // Name Column (Sticky)
                 let html = `<td class="p-3 sticky-col align-middle shadow-lg">
-                    <div class="flex items-center gap-2">
-                        <input type="text" value="${name}" placeholder="Operator Name" autocomplete="off"
-                               data-dropdown="operator"
-                               onclick="triggerDropdown(this, 'operator')" onfocus="triggerDropdown(this, 'operator')"
-                               class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
-                               onchange="updateOperatorName('${name}', this.value)">
-                        <button type="button" onclick="removeOperatorUI('${name}')" title="Delete Operator Row" 
-                                class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/15 rounded-lg border border-transparent hover:border-red-500/30 transition-all flex-shrink-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </button>
-                    </div>
+                    <input type="text" value="${name}" placeholder="Staff Name" autocomplete="off"
+                           data-dropdown="staff"
+                           onclick="triggerDropdown(this, 'staff')" onfocus="triggerDropdown(this, 'staff')"
+                           class="w-full bg-slate-900 border border-slate-700 rounded px-3 py-2 text-white font-bold focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
+                           onchange="updateOperatorName('${name}', this.value)">
                 </td>`;
                 
                 // Day Columns (Scrollable)
                 displayDates.forEach((dateStr) => {
                     const rec = allRecords.find(r => r.person_name === name && r.route_date === dateStr) || { route: '', type: '' };
-                    
-                    let selectStyles = "bg-slate-900 border-slate-700 text-slate-400";
-                    if (rec.type === 'ORDER') selectStyles = "bg-sky-900/25 border-sky-500/60 text-sky-400 font-bold";
-                    else if (rec.type === 'SUPPLY') selectStyles = "bg-emerald-900/25 border-emerald-500/60 text-emerald-400 font-bold";
-                    else if (rec.type === 'MARKETING') selectStyles = "bg-purple-900/30 border-purple-500/60 text-purple-300 font-bold";
-                    else if (rec.type === 'LEAVE') selectStyles = "bg-amber-900/30 border-amber-500/60 text-amber-300 font-bold";
+                    const safeNameId = name.replace(/[^a-zA-Z0-9]/g, '_');
+                    const cellKey = `${safeNameId}-${dateStr}`;
+
+                    // Themed Type Button Details
+                    const currentType = rec.type || '';
+                    const typeConfig = TASK_TYPES[currentType];
+                    const typeBtnClasses = typeConfig ? typeConfig.badgeClass : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+                    const typeDot = typeConfig ? `<span class="h-2 w-2 rounded-full ${typeConfig.dotClass} flex-shrink-0"></span>` : `<span class="h-1.5 w-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>`;
+                    const typeLabel = typeConfig ? typeConfig.label : '-- TYPE --';
 
                     html += `<td class="p-3 border-r border-slate-700/50 align-top">
                         <div class="flex flex-col gap-2">
-                            <input type="text" value="${rec.route || ''}" id="route-${name.replace(/\s+/g,'')}-${dateStr}" placeholder="Route..." autocomplete="off"
+                            <input type="text" value="${rec.route || ''}" id="route-${cellKey}" placeholder="Route..." autocomplete="off"
                                    data-dropdown="route"
                                    onclick="triggerDropdown(this, 'route')" onfocus="triggerDropdown(this, 'route')"
-                                   class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-sm text-white uppercase font-semibold focus:border-blue-500 focus:outline-none transition"
+                                   class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-sm text-white uppercase font-semibold focus:border-blue-500 focus:outline-none transition"
                                    onchange="upsertCell('${name}', '${dateStr}')">
                             
-                            <select id="type-${name.replace(/\s+/g,'')}-${dateStr}" class="w-full border rounded px-2 py-2 text-xs font-bold focus:outline-none transition ${selectStyles}"
-                                    onchange="upsertCell('${name}', '${dateStr}')">
-                                <option value="" ${!rec.type ? 'selected' : ''}>-- TYPE --</option>
-                                <option value="ORDER" ${rec.type === 'ORDER' ? 'selected' : ''}>ORDER</option>
-                                <option value="SUPPLY" ${rec.type === 'SUPPLY' ? 'selected' : ''}>SUPPLY</option>
-                                <option value="MARKETING" ${rec.type === 'MARKETING' ? 'selected' : ''}>MARKETING</option>
-                                <option value="LEAVE" ${rec.type === 'LEAVE' ? 'selected' : ''}>LEAVE</option>
-                            </select>
+                            <!-- Themed Custom Type Selector Button -->
+                            <button type="button" 
+                                    id="type-btn-${cellKey}"
+                                    onclick="openThemedTypeSelector(this, '${name}', '${dateStr}')"
+                                    class="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-sm ${typeBtnClasses}">
+                                <span class="flex items-center gap-1.5 truncate">
+                                    ${typeDot}
+                                    <span class="truncate" id="type-text-${cellKey}">${typeLabel}</span>
+                                </span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-60 flex-shrink-0 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <input type="hidden" id="type-${cellKey}" value="${currentType}">
                         </div>
                     </td>`;
                 });
@@ -767,42 +1034,34 @@
                 tr.innerHTML = html;
                 tbody.appendChild(tr);
             });
+
+            updateDrawerStats();
         }
 
-        // --- Smart Upsert / Delete Logic ---
-        
+        // --- Smart Upsert / Delete Cell Logic ---
         async function upsertCell(personName, routeDate) {
             showSaveIndicator('Saving changes...');
             
-            const routeInput = document.getElementById(`route-${personName.replace(/\s+/g,'')}-${routeDate}`);
-            const typeSelect = document.getElementById(`type-${personName.replace(/\s+/g,'')}-${routeDate}`);
+            const safeNameId = personName.replace(/[^a-zA-Z0-9]/g, '_');
+            const cellKey = `${safeNameId}-${routeDate}`;
+            const routeInput = document.getElementById(`route-${cellKey}`);
+            const typeInput = document.getElementById(`type-${cellKey}`);
             
-            if (!routeInput || !typeSelect) return;
+            if (!routeInput || !typeInput) return;
 
-            // Clean up inputs
             const routeVal = routeInput.value ? routeInput.value.trim().toUpperCase() : null;
-            const typeVal = typeSelect.value ? typeSelect.value : null;
+            const typeVal = typeInput.value ? typeInput.value : null;
 
-            // Instantly update color classes on select element
-            let selectStyles = "bg-slate-900 border-slate-700 text-slate-400";
-            if (typeVal === 'ORDER') selectStyles = "bg-sky-900/25 border-sky-500/60 text-sky-400 font-bold";
-            else if (typeVal === 'SUPPLY') selectStyles = "bg-emerald-900/25 border-emerald-500/60 text-emerald-400 font-bold";
-            else if (typeVal === 'MARKETING') selectStyles = "bg-purple-900/30 border-purple-500/60 text-purple-300 font-bold";
-            else if (typeVal === 'LEAVE') selectStyles = "bg-amber-900/30 border-amber-500/60 text-amber-300 font-bold";
-            typeSelect.className = `w-full border rounded px-2 py-2 text-xs font-bold focus:outline-none transition ${selectStyles}`;
-
-            // If both are empty, delete the record
+            // If both route and type are empty, delete the cell record
             if (!routeVal && !typeVal) {
                 const { error } = await supabaseClient.from('safa_daily_routes')
                     .delete()
                     .match({ person_name: personName, route_date: routeDate });
                 if (error) console.error("Error deleting:", error);
 
-                // Update local memory
                 allRecords = allRecords.filter(r => !(r.person_name === personName && r.route_date === routeDate));
                 showSaveIndicator('Cell cleared.');
             } else {
-                // Upsert record
                 const payload = {
                     person_name: personName,
                     route_date: routeDate,
@@ -814,7 +1073,6 @@
                     .upsert(payload, { onConflict: 'person_name, route_date' });
                 if (error) console.error("Error upserting:", error);
 
-                // Update local memory immediately
                 const existingIdx = allRecords.findIndex(r => r.person_name === personName && r.route_date === routeDate);
                 if (existingIdx >= 0) {
                     allRecords[existingIdx] = { ...allRecords[existingIdx], ...payload };
@@ -823,29 +1081,222 @@
                 }
                 showSaveIndicator('Changes saved to database.');
             }
+
+            updateDrawerStats();
         }
 
-        // Rename an operator across all their records
+        // --- Themed Type Selector Popover Logic ---
+        let currentTypeTargetCell = null; // { buttonEl, personName, routeDate, isFilter }
+
+        function openThemedTypeSelector(buttonEl, personName, routeDate) {
+            currentTypeTargetCell = { buttonEl, personName, routeDate, isFilter: false };
+            renderThemedTypeMenu(false);
+            positionPopover(buttonEl, document.getElementById('themed-type-dropdown'));
+        }
+
+        function openThemedFilterTypeDropdown(buttonEl) {
+            currentTypeTargetCell = { buttonEl, isFilter: true };
+            renderThemedTypeMenu(true);
+            positionPopover(buttonEl, document.getElementById('themed-type-dropdown'));
+        }
+
+        function renderThemedTypeMenu(isFilter = false) {
+            const container = document.getElementById('themed-type-options');
+            const dropdown = document.getElementById('themed-type-dropdown');
+            if (!container || !dropdown) return;
+            container.innerHTML = '';
+
+            let currentValue = '';
+            if (isFilter) {
+                currentValue = document.getElementById('filter-type')?.value || '';
+            } else if (currentTypeTargetCell) {
+                const safeNameId = currentTypeTargetCell.personName.replace(/[^a-zA-Z0-9]/g, '_');
+                currentValue = document.getElementById(`type-${safeNameId}-${currentTypeTargetCell.routeDate}`)?.value || '';
+            }
+
+            // In filter mode, offer "All Types"
+            if (isFilter) {
+                const isAllSelected = !currentValue;
+                const allBtn = document.createElement('button');
+                allBtn.type = 'button';
+                allBtn.className = `flex items-center justify-between w-full px-2.5 py-2 rounded-lg transition text-left ${
+                    isAllSelected ? 'bg-blue-600/20 text-blue-300 font-bold border border-blue-500/30' : 'hover:bg-slate-800 text-slate-300'
+                }`;
+                allBtn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-slate-500"></span>
+                        <span>All Types</span>
+                    </div>
+                    ${isAllSelected ? '<span class="text-blue-400 font-black">✓</span>' : ''}
+                `;
+                allBtn.onclick = () => selectThemedTypeOption('');
+                container.appendChild(allBtn);
+            }
+
+            // Render each task type
+            Object.keys(TASK_TYPES).forEach(key => {
+                const item = TASK_TYPES[key];
+                const isSelected = currentValue === key;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `flex items-center justify-between w-full px-2.5 py-2 rounded-lg transition text-left ${
+                    isSelected ? 'bg-slate-800/90 ring-1 ring-white/20 font-bold' : 'hover:bg-slate-800 text-slate-200'
+                }`;
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="h-2.5 w-2.5 rounded-full ${item.dotClass}"></span>
+                        <span class="font-bold">${item.label}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold ${item.tagClass}">${item.category}</span>
+                        ${isSelected ? '<span class="text-white font-bold ml-1">✓</span>' : ''}
+                    </div>
+                `;
+                btn.onclick = () => selectThemedTypeOption(key);
+                container.appendChild(btn);
+            });
+
+            // In cell mode, offer "Clear / None"
+            if (!isFilter) {
+                const divider = document.createElement('div');
+                divider.className = "border-t border-slate-800 my-0.5";
+                container.appendChild(divider);
+
+                const clearBtn = document.createElement('button');
+                clearBtn.type = 'button';
+                clearBtn.className = "flex items-center gap-2 w-full px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 transition text-left";
+                clearBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span>Clear Type (None)</span>
+                `;
+                clearBtn.onclick = () => selectThemedTypeOption('');
+                container.appendChild(clearBtn);
+            }
+        }
+
+        function selectThemedTypeOption(typeValue) {
+            if (!currentTypeTargetCell) return;
+
+            if (currentTypeTargetCell.isFilter) {
+                // Update filter input
+                const hiddenInput = document.getElementById('filter-type');
+                if (hiddenInput) hiddenInput.value = typeValue;
+                updateFilterTypeBtnUI(typeValue);
+            } else {
+                // Update grid cell
+                const { personName, routeDate } = currentTypeTargetCell;
+                const safeNameId = personName.replace(/[^a-zA-Z0-9]/g, '_');
+                const cellKey = `${safeNameId}-${routeDate}`;
+                
+                const hiddenInput = document.getElementById(`type-${cellKey}`);
+                const btnEl = document.getElementById(`type-btn-${cellKey}`);
+                
+                if (hiddenInput) hiddenInput.value = typeValue;
+
+                if (btnEl) {
+                    const cfg = TASK_TYPES[typeValue];
+                    const label = cfg ? cfg.label : '-- TYPE --';
+                    const dot = cfg ? `<span class="h-2 w-2 rounded-full ${cfg.dotClass} flex-shrink-0"></span>` : `<span class="h-1.5 w-1.5 rounded-full bg-slate-600 flex-shrink-0"></span>`;
+                    const btnClasses = cfg ? cfg.badgeClass : 'bg-slate-900/90 border-slate-700/80 text-slate-400 hover:bg-slate-800 hover:text-slate-200';
+                    
+                    btnEl.className = `w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all shadow-sm ${btnClasses}`;
+                    btnEl.innerHTML = `
+                        <span class="flex items-center gap-1.5 truncate">
+                            ${dot}
+                            <span class="truncate" id="type-text-${cellKey}">${label}</span>
+                        </span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-60 flex-shrink-0 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    `;
+                }
+
+                // Persist to Supabase
+                upsertCell(personName, routeDate);
+            }
+
+            hideThemedTypeDropdown();
+        }
+
+        function updateFilterTypeBtnUI(typeVal) {
+            const labelEl = document.getElementById('filter-type-label');
+            const btnEl = document.getElementById('filter-type-btn');
+            if (!labelEl || !btnEl) return;
+
+            const cfg = TASK_TYPES[typeVal];
+            if (cfg) {
+                labelEl.innerHTML = `
+                    <span class="h-2.5 w-2.5 rounded-full ${cfg.dotClass}"></span>
+                    <span class="font-bold text-white">${cfg.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded font-semibold ${cfg.tagClass}">${cfg.category}</span>
+                `;
+            } else {
+                labelEl.innerHTML = `
+                    <span class="h-2 w-2 rounded-full bg-slate-500"></span>
+                    <span class="text-slate-300">All Types</span>
+                `;
+            }
+        }
+
+        function positionPopover(triggerEl, popoverEl) {
+            if (!triggerEl || !popoverEl) return;
+            popoverEl.classList.remove('hidden');
+
+            const rect = triggerEl.getBoundingClientRect();
+            const approxHeight = 220;
+            let top = rect.bottom + 4;
+            let left = rect.left;
+            let width = Math.max(rect.width, 185);
+
+            if (left + width > window.innerWidth - 16) {
+                left = window.innerWidth - width - 16;
+            }
+            if (left < 16) left = 16;
+
+            if (top + approxHeight > window.innerHeight - 16 && rect.top > approxHeight + 16) {
+                top = rect.top - approxHeight - 4;
+            }
+
+            popoverEl.style.top = `${top}px`;
+            popoverEl.style.left = `${left}px`;
+            popoverEl.style.minWidth = `${width}px`;
+        }
+
+        function hideThemedTypeDropdown() {
+            const dropdown = document.getElementById('themed-type-dropdown');
+            if (dropdown) dropdown.classList.add('hidden');
+            currentTypeTargetCell = null;
+        }
+
+        // Rename a staff member across all their records
         async function updateOperatorName(oldName, newName) {
             newName = newName.trim();
             if (!newName || oldName === newName) return;
             
-            showSaveIndicator('Updating operator...');
+            showSaveIndicator('Updating staff...');
             const { error } = await supabaseClient.from('safa_daily_routes')
                 .update({ person_name: newName })
                 .eq('person_name', oldName);
                 
             if (!error) {
                 operatorNames = operatorNames.map(n => n === oldName ? newName : n);
+                customStaffCatalog = customStaffCatalog.map(n => n === oldName ? newName : n);
+                saveCatalogs();
                 allRecords = allRecords.map(r => r.person_name === oldName ? { ...r, person_name: newName } : r);
                 renderGrid();
-                showSaveIndicator('Operator name updated.');
+                showSaveIndicator('Staff name updated.');
             } else {
-                console.error('Update operator error:', error);
+                console.error('Update staff error:', error);
             }
         }
 
         function addOperator() {
+            addStaff();
+        }
+
+        function addStaff() {
             document.getElementById('new-operator-name').value = '';
             document.getElementById('add-modal').classList.remove('hidden');
             setTimeout(() => document.getElementById('new-operator-name').focus(), 100);
@@ -865,8 +1316,12 @@
             let newName = document.getElementById('new-operator-name').value.trim();
             if (newName && !operatorNames.includes(newName)) {
                 operatorNames.push(newName);
+                if (!customStaffCatalog.includes(newName)) {
+                    customStaffCatalog.push(newName);
+                    saveCatalogs();
+                }
                 
-                // Clear name filter if it would hide the new operator
+                // Clear name filter if it would hide the new staff
                 if (activeFilters.name && !newName.toLowerCase().includes(activeFilters.name)) {
                     activeFilters.name = '';
                     if (document.getElementById('filter-name')) document.getElementById('filter-name').value = '';
@@ -875,12 +1330,12 @@
                 
                 operatorNames.sort();
                 renderGrid();
-                showSaveIndicator(`Added operator "${newName}".`);
+                showSaveIndicator(`Added staff "${newName}".`);
             }
             closeAddModal();
         }
 
-        // --- Row Deletion Confirmation Popup Logic ---
+        // --- Row / Staff Deletion Confirmation Popup ---
         let operatorToRemove = null;
 
         function removeOperatorUI(name) {
@@ -908,7 +1363,7 @@
             }
 
             try {
-                // Delete all rows for this operator from safa_daily_routes database table
+                // Delete all rows for this staff member from safa_daily_routes database table
                 const { error } = await supabaseClient
                     .from('safa_daily_routes')
                     .delete()
@@ -918,12 +1373,14 @@
                     console.error("Error deleting from database:", error);
                 }
 
-                // Remove from local state
+                // Remove from local memory
                 operatorNames = operatorNames.filter(n => n !== nameToDelete);
+                customStaffCatalog = customStaffCatalog.filter(n => n !== nameToDelete);
+                saveCatalogs();
                 allRecords = allRecords.filter(r => r.person_name !== nameToDelete);
 
                 renderGrid();
-                showSaveIndicator(`Deleted operator "${nameToDelete}".`);
+                showSaveIndicator(`Deleted staff "${nameToDelete}".`);
             } catch (err) {
                 console.error("Error in delete row:", err);
             } finally {
@@ -933,7 +1390,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Delete Row
+                        Delete Staff
                     `;
                 }
                 closeRemoveModal();
@@ -949,21 +1406,40 @@
             window.saveIndTimer = setTimeout(() => { ind.style.opacity = '0'; }, 2200);
         }
 
-        // --- Themed Dropdown (Unique Operators & Routes with No Repetition) ---
+        // --- Themed Autocomplete Dropdown (Unique Staff & Routes with No Repetition) ---
         let currentDropdownTarget = null;
         let currentDropdownType = null;
 
-        function getUniqueOperators() {
+        function getUniqueStaffList() {
             const set = new Set();
+            customStaffCatalog.forEach(n => { if (n && n.trim()) set.add(n.trim()); });
             operatorNames.forEach(n => { if (n && n.trim()) set.add(n.trim()); });
             allRecords.forEach(r => { if (r.person_name && r.person_name.trim()) set.add(r.person_name.trim()); });
             return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         }
 
-        function getUniqueRoutes() {
+        function parseSelectedRoutes(val) {
+            if (!val) return [];
+            return val.split('&').map(s => s.trim().toUpperCase()).filter(Boolean);
+        }
+
+        function getUniqueRoutesList() {
             const set = new Set();
+            customRoutesCatalog.forEach(r => {
+                if (r && r.trim()) {
+                    r.split('&').forEach(part => {
+                        const clean = part.trim().toUpperCase();
+                        if (clean) set.add(clean);
+                    });
+                }
+            });
             allRecords.forEach(r => {
-                if (r.route && r.route.trim()) set.add(r.route.trim().toUpperCase());
+                if (r.route && r.route.trim()) {
+                    r.route.split('&').forEach(part => {
+                        const clean = part.trim().toUpperCase();
+                        if (clean) set.add(clean);
+                    });
+                }
             });
             return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         }
@@ -971,8 +1447,8 @@
         function triggerDropdown(inputEl, type) {
             if (!inputEl) return;
             currentDropdownTarget = inputEl;
-            currentDropdownType = type;
-            renderDropdownItems(inputEl.value);
+            currentDropdownType = (type === 'operator' || type === 'staff') ? 'staff' : 'route';
+            renderDropdownItems();
             showAndPositionDropdown(inputEl);
         }
 
@@ -982,10 +1458,21 @@
             if (!listEl || !dropdown) return;
 
             listEl.innerHTML = '';
-            const q = (query || '').trim().toLowerCase();
             
-            let items = currentDropdownType === 'operator' ? getUniqueOperators() : getUniqueRoutes();
-            
+            let items = currentDropdownType === 'staff' ? getUniqueStaffList() : getUniqueRoutesList();
+            let currentSelected = [];
+
+            if (currentDropdownType === 'route' && currentDropdownTarget) {
+                currentSelected = parseSelectedRoutes(currentDropdownTarget.value);
+            }
+
+            // Determine search filter if query is typed
+            let q = (query || '').trim().toLowerCase();
+            if (currentDropdownType === 'route' && q.includes('&')) {
+                const parts = q.split('&');
+                q = parts[parts.length - 1].trim().toLowerCase();
+            }
+
             if (q) {
                 items = items.filter(item => item.toLowerCase().includes(q));
             }
@@ -993,9 +1480,9 @@
             if (items.length === 0) {
                 const emptyDiv = document.createElement('div');
                 emptyDiv.className = "px-3.5 py-3 text-xs text-slate-400 italic text-center";
-                emptyDiv.textContent = currentDropdownType === 'operator' 
-                    ? 'No existing operators found' 
-                    : 'No existing routes found';
+                emptyDiv.textContent = currentDropdownType === 'staff' 
+                    ? 'No existing staff members found' 
+                    : 'No matching routes found';
                 listEl.appendChild(emptyDiv);
                 return;
             }
@@ -1003,18 +1490,34 @@
             // Header info
             const header = document.createElement('div');
             header.className = "px-3 py-1.5 text-[10px] uppercase font-bold tracking-wider text-slate-400 bg-slate-950/70 border-b border-slate-800 flex justify-between items-center";
-            header.innerHTML = `<span>Select ${currentDropdownType === 'operator' ? 'Operator' : 'Route'} (${items.length})</span><span class="text-slate-500 lowercase text-[10px]">no duplicates</span>`;
+            
+            if (currentDropdownType === 'route') {
+                header.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span>Select Route(s) (${items.length})</span>
+                        ${currentSelected.length > 0 ? `<span class="bg-blue-500/20 text-blue-300 text-[10px] px-1.5 py-0.5 rounded font-bold border border-blue-500/30">${currentSelected.length} active</span>` : ''}
+                    </div>
+                    <button type="button" onmousedown="event.preventDefault(); hideDropdown();" class="text-[10px] font-bold text-sky-400 hover:text-white px-2 py-0.5 rounded bg-sky-950/80 hover:bg-sky-900 border border-sky-600/50 transition flex items-center gap-1 shadow-sm">
+                        <span>Done</span>
+                        <span>✓</span>
+                    </button>
+                `;
+            } else {
+                header.innerHTML = `<span>Select Staff (${items.length})</span><span class="text-slate-500 lowercase text-[10px]">no duplicates</span>`;
+            }
             listEl.appendChild(header);
 
             items.forEach(item => {
                 const div = document.createElement('div');
-                const isCurrent = (currentDropdownTarget.value || '').trim().toLowerCase() === item.toLowerCase();
+                const isSelected = currentDropdownType === 'route'
+                    ? currentSelected.includes(item.toUpperCase())
+                    : (currentDropdownTarget.value || '').trim().toLowerCase() === item.toLowerCase();
                 
                 div.className = `flex items-center justify-between px-3.5 py-2 text-sm cursor-pointer transition-colors border-b border-slate-800/40 last:border-b-0 ${
-                    isCurrent ? 'bg-blue-600/20 text-blue-300 font-bold' : 'text-slate-200 hover:bg-blue-600/30 hover:text-white font-medium'
+                    isSelected ? 'bg-blue-600/25 text-blue-300 font-bold border-l-2 border-blue-500' : 'text-slate-200 hover:bg-blue-600/30 hover:text-white font-medium'
                 }`;
                 
-                const iconSvg = currentDropdownType === 'operator' 
+                const iconSvg = currentDropdownType === 'staff' 
                     ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400 opacity-70 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>`
                     : `<svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400 opacity-70 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`;
 
@@ -1023,37 +1526,72 @@
                         ${iconSvg}
                         <span class="truncate">${item}</span>
                     </div>
-                    ${isCurrent ? '<span class="text-blue-400 text-xs ml-2">✓</span>' : ''}
+                    ${isSelected ? '<span class="text-blue-400 text-xs font-black ml-2 px-1 rounded bg-blue-500/20">✓</span>' : ''}
                 `;
 
                 div.onmousedown = (e) => {
-                    e.preventDefault(); // prevent input blur before select
-                    selectDropdownItem(item);
+                    e.preventDefault();
+                    if (currentDropdownType === 'route') {
+                        toggleRouteSelection(item);
+                    } else {
+                        selectDropdownItem(item);
+                    }
                 };
 
                 listEl.appendChild(div);
             });
         }
 
+        function toggleRouteSelection(routeName) {
+            if (!currentDropdownTarget) return;
+            const target = currentDropdownTarget;
+            const cleanName = routeName.trim().toUpperCase();
+            
+            let routes = parseSelectedRoutes(target.value);
+            const existingIdx = routes.findIndex(r => r === cleanName);
+
+            if (existingIdx >= 0) {
+                // If route was already selected, clicking it toggles it off
+                routes.splice(existingIdx, 1);
+            } else {
+                // Check if user was typing a partial query at end of input
+                const rawParts = (target.value || '').split('&').map(s => s.trim().toUpperCase());
+                const lastRaw = rawParts.length > 0 ? rawParts[rawParts.length - 1] : '';
+                if (lastRaw && cleanName.startsWith(lastRaw) && !routes.includes(lastRaw)) {
+                    routes = routes.filter(r => r !== lastRaw);
+                }
+                routes.push(cleanName);
+            }
+
+            // Generate " & " symbol between routes for separation
+            target.value = routes.join(' & ');
+
+            // Trigger events to save changes to Supabase in real-time
+            target.dispatchEvent(new Event('input', { bubbles: true }));
+            target.dispatchEvent(new Event('change', { bubbles: true }));
+
+            // Keep dropdown open and re-render with updated selections
+            renderDropdownItems();
+            showAndPositionDropdown(target);
+            target.focus();
+        }
+
         function showAndPositionDropdown(inputEl) {
             const dropdown = document.getElementById('themed-autocomplete-dropdown');
             if (!dropdown) return;
-
             dropdown.classList.remove('hidden');
 
             const rect = inputEl.getBoundingClientRect();
             const approxHeight = 220;
             let top = rect.bottom + 4;
             let left = rect.left;
-            let width = Math.max(rect.width, 190);
+            let width = Math.max(rect.width, 210);
 
-            // Keep within window horizontal bounds
             if (left + width > window.innerWidth - 16) {
                 left = window.innerWidth - width - 16;
             }
             if (left < 16) left = 16;
 
-            // Flip upward if too close to bottom of screen
             if (top + approxHeight > window.innerHeight - 16 && rect.top > approxHeight + 16) {
                 top = rect.top - dropdown.offsetHeight - 4;
             }
@@ -1067,7 +1605,6 @@
             if (!currentDropdownTarget) return;
             currentDropdownTarget.value = value;
             
-            // Dispatch input and change events so bound listeners fire
             currentDropdownTarget.dispatchEvent(new Event('input', { bubbles: true }));
             currentDropdownTarget.dispatchEvent(new Event('change', { bubbles: true }));
             
@@ -1081,10 +1618,13 @@
             currentDropdownType = null;
         }
 
-        // Global dropdown handlers for outside clicks, scroll, and escape
+        // Global click and escape handlers
         document.addEventListener('click', (e) => {
             if (!e.target.closest('#themed-autocomplete-dropdown') && e.target !== currentDropdownTarget) {
                 hideDropdown();
+            }
+            if (!e.target.closest('#themed-type-dropdown') && (!currentTypeTargetCell || !e.target.closest(`#${currentTypeTargetCell.buttonEl?.id}`))) {
+                hideThemedTypeDropdown();
             }
         });
 
@@ -1096,23 +1636,466 @@
         });
 
         window.addEventListener('scroll', () => {
-            if (currentDropdownTarget) {
-                showAndPositionDropdown(currentDropdownTarget);
-            }
-        }, true); // Use capture to handle table and modal scrolling
+            if (currentDropdownTarget) showAndPositionDropdown(currentDropdownTarget);
+            if (currentTypeTargetCell && currentTypeTargetCell.buttonEl) positionPopover(currentTypeTargetCell.buttonEl, document.getElementById('themed-type-dropdown'));
+        }, true);
 
         window.addEventListener('resize', () => {
-            if (currentDropdownTarget) {
-                showAndPositionDropdown(currentDropdownTarget);
-            }
+            if (currentDropdownTarget) showAndPositionDropdown(currentDropdownTarget);
+            if (currentTypeTargetCell && currentTypeTargetCell.buttonEl) positionPopover(currentTypeTargetCell.buttonEl, document.getElementById('themed-type-dropdown'));
         });
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 hideDropdown();
+                hideThemedTypeDropdown();
                 closeRemoveModal();
+                closeAddModal();
+                closeFilterModal();
+                closeEditDatabaseModal();
+                toggleSideMenu(false);
             }
         });
+
+        // --- Side Menu Drawer Controller ---
+        function toggleSideMenu(open = null) {
+            const drawer = document.getElementById('side-menu-drawer');
+            const panel = document.getElementById('side-menu-panel');
+            const backdrop = document.getElementById('side-menu-backdrop');
+            if (!drawer || !panel || !backdrop) return;
+
+            const isOpen = panel.classList.contains('translate-x-0');
+            const targetState = open !== null ? open : !isOpen;
+
+            if (targetState) {
+                drawer.classList.remove('pointer-events-none');
+                panel.classList.remove('-translate-x-full');
+                panel.classList.add('translate-x-0');
+                backdrop.classList.remove('pointer-events-none', 'opacity-0');
+                backdrop.classList.add('pointer-events-auto', 'opacity-100');
+                updateDrawerStats();
+            } else {
+                panel.classList.remove('translate-x-0');
+                panel.classList.add('-translate-x-full');
+                backdrop.classList.remove('pointer-events-auto', 'opacity-100');
+                backdrop.classList.add('pointer-events-none', 'opacity-0');
+                setTimeout(() => {
+                    drawer.classList.add('pointer-events-none');
+                }, 300);
+            }
+        }
+
+        function navigateFromDrawer(destination) {
+            toggleSideMenu(false);
+            if (destination === 'schedule') {
+                // Already on schedule board
+            } else if (destination === 'database') {
+                openEditDatabaseModal();
+            } else if (destination === 'add-staff') {
+                setTimeout(() => addStaff(), 200);
+            } else if (destination === 'filter') {
+                setTimeout(() => openFilterModal(), 200);
+            }
+        }
+
+        function updateDrawerStats() {
+            const staffCount = getUniqueStaffList().length;
+            const routeCount = getUniqueRoutesList().length;
+            const recordCount = allRecords.length;
+
+            const sEl = document.getElementById('drawer-stat-staff');
+            const rEl = document.getElementById('drawer-stat-routes');
+            const recEl = document.getElementById('drawer-stat-records');
+
+            if (sEl) sEl.textContent = staffCount;
+            if (rEl) rEl.textContent = routeCount;
+            if (recEl) recEl.textContent = recordCount;
+
+            const badgeS = document.getElementById('tab-badge-staff');
+            const badgeR = document.getElementById('tab-badge-routes');
+            if (badgeS) badgeS.textContent = staffCount;
+            if (badgeR) badgeR.textContent = routeCount;
+        }
+
+        // --- Edit Database Management Logic ---
+        let currentDbTab = 'staff';
+        let staffEditingName = null;
+        let routeEditingName = null;
+
+        function openEditDatabaseModal() {
+            const modal = document.getElementById('edit-database-modal');
+            if (modal) modal.classList.remove('hidden');
+            switchDbTab(currentDbTab);
+        }
+
+        function closeEditDatabaseModal() {
+            const modal = document.getElementById('edit-database-modal');
+            if (modal) modal.classList.add('hidden');
+            staffEditingName = null;
+            routeEditingName = null;
+        }
+
+        function switchDbTab(tab) {
+            currentDbTab = tab;
+            const viewStaff = document.getElementById('db-view-staff');
+            const viewRoutes = document.getElementById('db-view-routes');
+            const btnStaff = document.getElementById('tab-btn-staff');
+            const btnRoutes = document.getElementById('tab-btn-routes');
+
+            if (tab === 'staff') {
+                viewStaff.classList.remove('hidden');
+                viewRoutes.classList.add('hidden');
+                btnStaff.className = "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-blue-600 text-white shadow-md shadow-blue-900/30";
+                btnRoutes.className = "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700";
+                renderDbStaffList();
+            } else {
+                viewStaff.classList.add('hidden');
+                viewRoutes.classList.remove('hidden');
+                btnStaff.className = "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700";
+                btnRoutes.className = "flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition bg-emerald-600 text-white shadow-md shadow-emerald-900/30";
+                renderDbRoutesList();
+            }
+            updateDrawerStats();
+        }
+
+        // Staff Management in DB
+        function renderDbStaffList() {
+            const container = document.getElementById('db-staff-items');
+            const searchInput = document.getElementById('db-search-staff');
+            const countLabel = document.getElementById('db-staff-count-label');
+            if (!container) return;
+
+            const query = (searchInput?.value || '').trim().toLowerCase();
+            let staffList = getUniqueStaffList();
+
+            if (query) {
+                staffList = staffList.filter(s => s.toLowerCase().includes(query));
+            }
+
+            if (countLabel) countLabel.textContent = `${staffList.length} staff member${staffList.length === 1 ? '' : 's'}`;
+            container.innerHTML = '';
+
+            if (staffList.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 bg-slate-950/40 rounded-xl border border-slate-800/80">No staff members found.</div>`;
+                return;
+            }
+
+            staffList.forEach(name => {
+                const row = document.createElement('div');
+                row.className = "bg-slate-950/50 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-3 transition";
+
+                // Count assignments
+                const assignmentCount = allRecords.filter(r => r.person_name === name && (r.route || r.type)).length;
+
+                if (staffEditingName === name) {
+                    // Inline Edit Mode
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2 flex-1">
+                            <input type="text" id="edit-staff-input-${name.replace(/[^a-zA-Z0-9]/g, '_')}" value="${name}" 
+                                   class="flex-1 bg-slate-900 border border-blue-500 rounded px-2.5 py-1 text-sm text-white font-bold focus:outline-none">
+                            <button type="button" onclick="saveRenameStaff('${name}')" class="p-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white font-bold transition shadow" title="Save">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                            <button type="button" onclick="cancelRenameStaff()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Cancel">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Standard Display Mode
+                    const initial = name.charAt(0).toUpperCase();
+                    row.innerHTML = `
+                        <div class="flex items-center gap-3 truncate flex-1">
+                            <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-sky-600/30 to-blue-600/20 border border-sky-500/30 text-sky-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                                ${initial}
+                            </div>
+                            <div class="truncate">
+                                <div class="font-bold text-white text-sm truncate">${name}</div>
+                                <div class="text-[11px] text-slate-400">${assignmentCount} schedule assignment${assignmentCount === 1 ? '' : 's'}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button type="button" onclick="startRenameStaff('${name}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                <span>Edit</span>
+                            </button>
+                            <button type="button" onclick="deleteStaffFromDbPrompt('${name}')" class="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        function handleAddStaffFromDb() {
+            const input = document.getElementById('db-new-staff-input');
+            if (!input) return;
+            const newName = input.value.trim();
+            if (!newName) return;
+
+            if (!operatorNames.includes(newName)) {
+                operatorNames.push(newName);
+            }
+            if (!customStaffCatalog.includes(newName)) {
+                customStaffCatalog.push(newName);
+            }
+            saveCatalogs();
+
+            input.value = '';
+            operatorNames.sort();
+            renderGrid();
+            renderDbStaffList();
+            showSaveIndicator(`Added staff "${newName}".`);
+        }
+
+        document.getElementById('db-new-staff-input')?.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') handleAddStaffFromDb();
+        });
+
+        function startRenameStaff(name) {
+            staffEditingName = name;
+            renderDbStaffList();
+            setTimeout(() => {
+                const inp = document.getElementById(`edit-staff-input-${name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                if (inp) {
+                    inp.focus();
+                    inp.select();
+                }
+            }, 50);
+        }
+
+        function cancelRenameStaff() {
+            staffEditingName = null;
+            renderDbStaffList();
+        }
+
+        async function saveRenameStaff(oldName) {
+            const inp = document.getElementById(`edit-staff-input-${oldName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+            if (!inp) return;
+            const newName = inp.value.trim();
+            if (!newName || newName === oldName) {
+                cancelRenameStaff();
+                return;
+            }
+
+            showSaveIndicator('Renaming staff in database...');
+            const { error } = await supabaseClient.from('safa_daily_routes')
+                .update({ person_name: newName })
+                .eq('person_name', oldName);
+
+            if (!error) {
+                operatorNames = operatorNames.map(n => n === oldName ? newName : n);
+                customStaffCatalog = customStaffCatalog.map(n => n === oldName ? newName : n);
+                saveCatalogs();
+                allRecords = allRecords.map(r => r.person_name === oldName ? { ...r, person_name: newName } : r);
+                staffEditingName = null;
+                renderGrid();
+                renderDbStaffList();
+                showSaveIndicator(`Staff renamed to "${newName}".`);
+            } else {
+                console.error("Rename staff error:", error);
+                alert("Failed to update staff name in database: " + error.message);
+            }
+        }
+
+        function deleteStaffFromDbPrompt(name) {
+            removeOperatorUI(name);
+        }
+
+        // Route Management in DB
+        function renderDbRoutesList() {
+            const container = document.getElementById('db-route-items');
+            const searchInput = document.getElementById('db-search-routes');
+            const countLabel = document.getElementById('db-routes-count-label');
+            if (!container) return;
+
+            const query = (searchInput?.value || '').trim().toLowerCase();
+            let routeList = getUniqueRoutesList();
+
+            if (query) {
+                routeList = routeList.filter(r => r.toLowerCase().includes(query));
+            }
+
+            if (countLabel) countLabel.textContent = `${routeList.length} route${routeList.length === 1 ? '' : 's'}`;
+            container.innerHTML = '';
+
+            if (routeList.length === 0) {
+                container.innerHTML = `<div class="p-6 text-center text-slate-500 bg-slate-950/40 rounded-xl border border-slate-800/80">No routes found.</div>`;
+                return;
+            }
+
+            routeList.forEach(routeName => {
+                const row = document.createElement('div');
+                row.className = "bg-slate-950/50 border border-slate-800/80 hover:border-slate-700/80 rounded-xl p-3 flex items-center justify-between gap-3 transition";
+
+                // Count assignments
+                const assignmentCount = allRecords.filter(r => {
+                    if (!r.route) return false;
+                    const parts = r.route.split('&').map(s => s.trim().toUpperCase());
+                    return parts.includes(routeName);
+                }).length;
+
+                if (routeEditingName === routeName) {
+                    // Inline Edit Mode
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2 flex-1">
+                            <input type="text" id="edit-route-input-${routeName.replace(/[^a-zA-Z0-9]/g, '_')}" value="${routeName}" 
+                                   class="flex-1 bg-slate-900 border border-emerald-500 rounded px-2.5 py-1 text-sm text-white font-bold uppercase focus:outline-none">
+                            <button type="button" onclick="saveRenameRoute('${routeName}')" class="p-1.5 rounded-lg bg-green-600 hover:bg-green-500 text-white font-bold transition shadow" title="Save">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                            </button>
+                            <button type="button" onclick="cancelRenameRoute()" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition" title="Cancel">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    // Standard Display Mode
+                    row.innerHTML = `
+                        <div class="flex items-center gap-3 truncate flex-1">
+                            <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-emerald-600/30 to-teal-600/20 border border-emerald-500/30 text-emerald-300 flex items-center justify-center flex-shrink-0">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
+                            </div>
+                            <div class="truncate">
+                                <div class="font-bold text-white text-sm uppercase truncate">${routeName}</div>
+                                <div class="text-[11px] text-slate-400">${assignmentCount} active assignment${assignmentCount === 1 ? '' : 's'}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            <button type="button" onclick="startRenameRoute('${routeName}')" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                                <span>Edit</span>
+                            </button>
+                            <button type="button" onclick="deleteRouteFromDb('${routeName}')" class="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 transition" title="Delete Route">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                container.appendChild(row);
+            });
+        }
+
+        function handleAddRouteFromDb() {
+            const input = document.getElementById('db-new-route-input');
+            if (!input) return;
+            const newRoute = input.value.trim().toUpperCase();
+            if (!newRoute) return;
+
+            if (!customRoutesCatalog.includes(newRoute)) {
+                customRoutesCatalog.push(newRoute);
+                saveCatalogs();
+            }
+
+            input.value = '';
+            renderDbRoutesList();
+            showSaveIndicator(`Route "${newRoute}" added.`);
+        }
+
+        document.getElementById('db-new-route-input')?.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') handleAddRouteFromDb();
+        });
+
+        function startRenameRoute(routeName) {
+            routeEditingName = routeName;
+            renderDbRoutesList();
+            setTimeout(() => {
+                const inp = document.getElementById(`edit-route-input-${routeName.replace(/[^a-zA-Z0-9]/g, '_')}`);
+                if (inp) {
+                    inp.focus();
+                    inp.select();
+                }
+            }, 50);
+        }
+
+        function cancelRenameRoute() {
+            routeEditingName = null;
+            renderDbRoutesList();
+        }
+
+        async function saveRenameRoute(oldRoute) {
+            const inp = document.getElementById(`edit-route-input-${oldRoute.replace(/[^a-zA-Z0-9]/g, '_')}`);
+            if (!inp) return;
+            const newRoute = inp.value.trim().toUpperCase();
+            if (!newRoute || newRoute === oldRoute) {
+                cancelRenameRoute();
+                return;
+            }
+
+            showSaveIndicator('Updating route across all schedules...');
+            
+            const matchingRecords = allRecords.filter(r => {
+                if (!r.route) return false;
+                const parts = r.route.split('&').map(s => s.trim().toUpperCase());
+                return parts.includes(oldRoute);
+            });
+
+            for (const rec of matchingRecords) {
+                const parts = rec.route.split('&').map(s => s.trim().toUpperCase());
+                const updatedParts = parts.map(p => p === oldRoute ? newRoute : p);
+                const updatedRoute = updatedParts.join(' & ');
+                await supabaseClient.from('safa_daily_routes')
+                    .update({ route: updatedRoute })
+                    .match({ person_name: rec.person_name, route_date: rec.route_date });
+            }
+
+            customRoutesCatalog = customRoutesCatalog.map(r => r === oldRoute ? newRoute : r);
+            saveCatalogs();
+            allRecords = allRecords.map(r => {
+                if (!r.route) return r;
+                const parts = r.route.split('&').map(s => s.trim().toUpperCase());
+                if (parts.includes(oldRoute)) {
+                    const updatedParts = parts.map(p => p === oldRoute ? newRoute : p);
+                    return { ...r, route: updatedParts.join(' & ') };
+                }
+                return r;
+            });
+            routeEditingName = null;
+            renderGrid();
+            renderDbRoutesList();
+            showSaveIndicator(`Route updated to "${newRoute}".`);
+        }
+
+        async function deleteRouteFromDb(routeName) {
+            if (!confirm(`Are you sure you want to remove route "${routeName}"? This will clear this route from all assignments.`)) {
+                return;
+            }
+
+            showSaveIndicator('Clearing route in database...');
+            const matchingRecords = allRecords.filter(r => {
+                if (!r.route) return false;
+                const parts = r.route.split('&').map(s => s.trim().toUpperCase());
+                return parts.includes(routeName);
+            });
+
+            for (const rec of matchingRecords) {
+                const parts = rec.route.split('&').map(s => s.trim().toUpperCase());
+                const remaining = parts.filter(p => p !== routeName);
+                const updatedRoute = remaining.length > 0 ? remaining.join(' & ') : null;
+                await supabaseClient.from('safa_daily_routes')
+                    .update({ route: updatedRoute })
+                    .match({ person_name: rec.person_name, route_date: rec.route_date });
+            }
+
+            customRoutesCatalog = customRoutesCatalog.filter(r => r !== routeName);
+            saveCatalogs();
+            allRecords = allRecords.map(r => {
+                if (!r.route) return r;
+                const parts = r.route.split('&').map(s => s.trim().toUpperCase());
+                if (parts.includes(routeName)) {
+                    const remaining = parts.filter(p => p !== routeName);
+                    return { ...r, route: remaining.length > 0 ? remaining.join(' & ') : null };
+                }
+                return r;
+            });
+            renderGrid();
+            renderDbRoutesList();
+            showSaveIndicator(`Route "${routeName}" removed.`);
+        }
 
         // --- Filters Modal & Date Range Logic ---
         const modal = document.getElementById('filter-modal');
@@ -1124,6 +2107,7 @@
             if (document.getElementById('filter-date-from')) document.getElementById('filter-date-from').value = activeFilters.dateFrom;
             if (document.getElementById('filter-date-to')) document.getElementById('filter-date-to').value = activeFilters.dateTo;
             
+            updateFilterTypeBtnUI(activeFilters.type);
             selectRollingDays(displayDays, false);
             onDateRangeChange();
             modal.classList.remove('hidden'); 
@@ -1131,43 +2115,6 @@
 
         function closeFilterModal() { 
             modal.classList.add('hidden'); 
-        }
-
-        function setQuickDateRange(preset) {
-            const today = new Date();
-            const formatDate = (d) => {
-                const year = d.getFullYear();
-                const month = String(d.getMonth() + 1).padStart(2, '0');
-                const day = String(d.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
-            };
-
-            let fromStr = '';
-            let toStr = '';
-
-            if (preset === 'today') {
-                fromStr = formatDate(today);
-                toStr = formatDate(today);
-            } else if (preset === 'tomorrow') {
-                const tmrw = new Date(today);
-                tmrw.setDate(today.getDate() + 1);
-                fromStr = formatDate(tmrw);
-                toStr = formatDate(tmrw);
-            } else if (preset === 'next3') {
-                fromStr = formatDate(today);
-                const d3 = new Date(today);
-                d3.setDate(today.getDate() + 2);
-                toStr = formatDate(d3);
-            } else if (preset === 'next7') {
-                fromStr = formatDate(today);
-                const d7 = new Date(today);
-                d7.setDate(today.getDate() + 6);
-                toStr = formatDate(d7);
-            }
-
-            document.getElementById('filter-date-from').value = fromStr;
-            document.getElementById('filter-date-to').value = toStr;
-            onDateRangeChange();
         }
 
         function clearDateRange() {
@@ -1179,7 +2126,6 @@
         function selectRollingDays(days, autoSync = false) {
             displayDays = parseInt(days, 10) || 3;
 
-            // Highlight chosen button
             [1, 3, 5, 7, 14].forEach(d => {
                 const btn = document.getElementById(`btn-day-${d}`);
                 if (btn) {
@@ -1235,7 +2181,6 @@
             let fromVal = document.getElementById('filter-date-from').value;
             let toVal = document.getElementById('filter-date-to').value;
 
-            // Normalize order if user entered to before from
             if (fromVal && toVal && fromVal > toVal) {
                 const temp = fromVal;
                 fromVal = toVal;
@@ -1262,6 +2207,7 @@
             if (document.getElementById('filter-date-from')) document.getElementById('filter-date-from').value = '';
             if (document.getElementById('filter-date-to')) document.getElementById('filter-date-to').value = '';
             
+            updateFilterTypeBtnUI('');
             displayDays = 3;
             selectRollingDays(3, false);
             activeFilters = { name: '', route: '', type: '', dateFrom: '', dateTo: '' };
@@ -1280,13 +2226,11 @@
         const offlineToast = document.getElementById('offline-toast');
         const updateToast = document.getElementById('update-toast');
 
-        // Check standalone / installed mode
         const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
         if (isStandalone) {
             console.log('[PWA] Running in standalone mode');
         }
 
-        // Capture browser install prompt
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredInstallPrompt = e;
@@ -1303,7 +2247,6 @@
 
         async function triggerPwaInstall() {
             if (!deferredInstallPrompt) {
-                // Fallback for browsers where install prompt isn't directly triggered
                 alert('To install this app, tap your browser menu (or share icon) and select "Add to Home Screen" or "Install App".');
                 return;
             }
@@ -1314,7 +2257,6 @@
             if (installBtn) installBtn.classList.add('hidden');
         }
 
-        // Online / Offline Detection
         function updateNetworkStatus() {
             const isOnline = navigator.onLine;
             const dot = document.getElementById('connection-dot');
@@ -1337,22 +2279,17 @@
         window.addEventListener('offline', updateNetworkStatus);
         updateNetworkStatus();
 
-        // Register Service Worker
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then((reg) => {
                         swRegistration = reg;
-                        console.log('[PWA ServiceWorker] Registered successfully with scope:', reg.scope);
-
-                        // Check for service worker updates
                         reg.addEventListener('updatefound', () => {
                             const newWorker = reg.installing;
                             if (newWorker) {
                                 newWorker.addEventListener('statechange', () => {
                                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        // New version available!
                                         if (updateToast) updateToast.classList.remove('hidden');
                                     }
                                 });
